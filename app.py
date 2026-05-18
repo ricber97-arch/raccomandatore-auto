@@ -77,11 +77,21 @@ details summary:hover { color: #333; }
 def get_catalogo():
     return carica_auto()
 
+# ─── Fix 4: mapping uso → mix percorso ────────────────────────────────────────
+
+MAPPING_USO = {
+    "Tragitto casa-lavoro in città":  {"mix_citta": 0.75, "mix_extra": 0.15, "mix_auto": 0.10, "km_giorno": 25,  "autonomia_viaggio": 30},
+    "Viaggi frequenti fuori città":   {"mix_citta": 0.15, "mix_extra": 0.30, "mix_auto": 0.55, "km_giorno": 80,  "autonomia_viaggio": 250},
+    "Uso misto quotidiano":           {"mix_citta": 0.40, "mix_extra": 0.35, "mix_auto": 0.25, "km_giorno": 50,  "autonomia_viaggio": 100},
+    "Uso occasionale / weekend":      {"mix_citta": 0.50, "mix_extra": 0.30, "mix_auto": 0.20, "km_giorno": 15,  "autonomia_viaggio": 150},
+}
+
 # ─── Session state ─────────────────────────────────────────────────────────────
 
 _DEFAULTS = {
     "step": 1,
-    "percorso": None, "km_giorno": None, "autonomia_viaggio": None,
+    "km_giorno": None, "autonomia_viaggio": None,
+    "mix_citta": None, "mix_extra": None, "mix_auto": None,
     "n_passeggeri": None, "ricarica_a_casa": None, "budget": None,
     "neopatentato": False, "contesto": "privato",
     "label_uso": None, "label_passeggeri": None,
@@ -120,8 +130,10 @@ def _avanza(vals: dict, next_step):
 
 def _spiegazione(auto, profilo: ProfiloUtente) -> str:
     km = profilo.km_giorno
+    uso_city    = profilo.mix_citta >= 0.60
+    uso_highway = profilo.mix_auto  >= 0.50
     if auto.is_elettrica:
-        if km <= 40 and profilo.percorso == "città":
+        if uso_city and km <= 40:
             costo = km * 365 / 100 * 18 * 0.25
             return (f"Con {km:.0f} km/giorno in città il costo energia stimato è ~{costo:.0f}€/anno "
                     f"— meno di un pieno al mese di benzina.")
@@ -135,11 +147,11 @@ def _spiegazione(auto, profilo: ProfiloUtente) -> str:
         return ("L'ibrido si ricarica da solo in frenata — nessuna presa necessaria, "
                 "consumi ridotti specialmente nel traffico urbano.")
     if auto.is_diesel:
-        if profilo.percorso == "autostrada" or km > 100:
+        if uso_highway or km > 100:
             consumo = f"{auto.consumo} l/100km" if auto.consumo else "ridotti"
             return (f"Diesel efficiente per le tue percorrenze elevate: {consumo} "
                     f"tra i più bassi tra le termiche su lunghi tragitti.")
-        return f"Consumi contenuti ({auto.consumo} l/100km) per chi percorre molti km anche su tratti misti."
+        return f"Consumi contenuti ({auto.consumo} l/100km) per chi percorre molti km su tratti misti."
     if auto.is_lpg:
         return "GPL a ~0,80€/L: a parità di km percorsi, si spende circa la metà rispetto alla benzina."
     if auto.is_ng:
@@ -162,18 +174,19 @@ def _analizza_esclusi(catalogo, profilo: ProfiloUtente, top_risultati) -> list:
             elif auto.is_elettrica:
                 cnt["ev_no_ricarica"] += 1
         else:
-            budget_pts = sum(p for cat, p, _ in det.voci if cat == "budget")
-            fuel_pts   = sum(p for cat, p, _ in det.voci if cat == "alimentazione")
-            if budget_pts <= -20:
+            # Con il nuovo budget_score, fuori budget = score 0 E prezzo > budget*1.10
+            if auto.prezzo and auto.prezzo > profilo.budget_acquisto_eur * 1.10:
                 cnt["budget"] += 1
-            elif fuel_pts <= -10:
-                cnt["alimentazione"] += 1
+            else:
+                fuel_pts = sum(p for cat, p, _ in det.voci if cat == "alimentazione")
+                if fuel_pts < 25:
+                    cnt["alimentazione"] += 1
 
     LABELS = {
         "neopatentato":  "Potenza eccessiva per neopatentati (>55 kW/t): escluse per legge",
         "ev_no_ricarica":"Auto elettriche: senza ricarica domestica non sono pratiche per il tuo utilizzo",
-        "budget":        "Prezzo superiore al tuo budget",
-        "alimentazione": "Alimentazione non adatta al tuo percorso o abitudini di guida",
+        "budget":        "Prezzo superiore al tuo budget (>10% oltre)",
+        "alimentazione": "Alimentazione poco compatibile con il tuo mix di percorsi",
     }
     return [(LABELS[k], v) for k, v in cnt.most_common(3) if k in LABELS]
 
@@ -184,7 +197,6 @@ st.caption("Top 50 auto più vendute in Italia nel 2024 — dati EEA reali")
 
 step = st.session_state.step
 
-# Barra di avanzamento e riepilogo (solo durante il wizard)
 if step != "results":
     step_num = step if isinstance(step, int) else 5
     st.progress(step_num / 5, text=f"Step {step_num} di 5")
@@ -199,13 +211,13 @@ if step == 1:
     st.subheader("Come usi l'auto di solito?")
     OPZIONI = [
         ("🏙️  Tragitto casa-lavoro in città",
-         dict(percorso="città",      km_giorno=25, autonomia_viaggio=30,  label_uso="Uso città")),
+         {**MAPPING_USO["Tragitto casa-lavoro in città"], "label_uso": "Uso città"}),
         ("🛣️  Viaggi frequenti fuori città",
-         dict(percorso="autostrada", km_giorno=60, autonomia_viaggio=250, label_uso="Fuori città")),
+         {**MAPPING_USO["Viaggi frequenti fuori città"],  "label_uso": "Fuori città"}),
         ("🔄  Uso misto quotidiano",
-         dict(percorso="misto",      km_giorno=50, autonomia_viaggio=80,  label_uso="Uso misto")),
+         {**MAPPING_USO["Uso misto quotidiano"],          "label_uso": "Uso misto"}),
         ("🌅  Uso occasionale / weekend",
-         dict(percorso="città",      km_giorno=15, autonomia_viaggio=150, label_uso="Uso weekend")),
+         {**MAPPING_USO["Uso occasionale / weekend"],     "label_uso": "Uso weekend"}),
     ]
     for i, (lbl, vals) in enumerate(OPZIONI):
         if st.button(lbl, use_container_width=True, key=f"s1_{i}"):
@@ -272,13 +284,15 @@ elif step == 5:
 
 elif step == "results":
     profilo = ProfiloUtente(
-        km_giorno            = st.session_state.km_giorno,
-        percorso             = st.session_state.percorso,
-        ricarica_a_casa      = st.session_state.ricarica_a_casa,
-        budget_acquisto_eur  = st.session_state.budget,
-        n_passeggeri_abituali= st.session_state.n_passeggeri,
-        neopatentato         = st.session_state.neopatentato,
-        contesto             = st.session_state.contesto,
+        km_giorno             = st.session_state.km_giorno,
+        mix_citta             = st.session_state.mix_citta,
+        mix_extra             = st.session_state.mix_extra,
+        mix_auto              = st.session_state.mix_auto,
+        ricarica_a_casa       = st.session_state.ricarica_a_casa,
+        budget_acquisto_eur   = st.session_state.budget,
+        n_passeggeri_abituali = st.session_state.n_passeggeri,
+        neopatentato          = st.session_state.neopatentato,
+        contesto              = st.session_state.contesto,
     )
 
     with st.spinner("Calcolo raccomandazioni..."):
@@ -295,18 +309,18 @@ elif step == "results":
         COLORI    = {1: "#1a73e8", 2: "#188038", 3: "#e37400"}
         LABEL_RNK = {1: "Prima scelta", 2: "Seconda scelta", 3: "Terza scelta"}
         ETICHETTE = {
-            "electric":       "Elettrica",
-            "petrol":         "Benzina",
-            "diesel":         "Diesel",
-            "lpg":            "GPL",
-            "ng":             "Metano",
-            "petrol/electric":"Ibrida plug-in (PHEV)",
+            "electric":        "Elettrica",
+            "petrol":          "Benzina",
+            "diesel":          "Diesel",
+            "lpg":             "GPL",
+            "ng":              "Metano",
+            "petrol/electric": "Ibrida plug-in (PHEV)",
         }
 
         for r in risultati:
             auto  = r.auto
             score = r.score
-            col   = COLORI.get(r.rank, "#555")
+            col      = COLORI.get(r.rank, "#555")
             rank_lbl = LABEL_RNK.get(r.rank, f"#{r.rank}")
             ft_lbl   = ETICHETTE.get(auto.alimentazione, auto.alimentazione.upper())
 
@@ -348,7 +362,6 @@ elif step == "results":
 </div>
 """, unsafe_allow_html=True)
 
-        # ── Perché abbiamo escluso le altre ──────────────────────────────────
         esclusi = _analizza_esclusi(catalogo, profilo, risultati)
         if esclusi:
             st.markdown("---")
