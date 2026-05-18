@@ -68,6 +68,10 @@ details summary {
     user-select: none;
 }
 details summary:hover { color: #333; }
+/* ── Bottoni profilo (step 1) — prima riga in grassetto ── */
+div[data-testid="stButton"] > button::first-line {
+    font-weight: 700;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -77,13 +81,39 @@ details summary:hover { color: #333; }
 def get_catalogo():
     return carica_auto()
 
-# ─── Fix 4: mapping uso → mix percorso ────────────────────────────────────────
+# ─── Profili di guida (step 1) ────────────────────────────────────────────────
 
-MAPPING_USO = {
-    "Tragitto casa-lavoro in città":  {"mix_citta": 0.75, "mix_extra": 0.15, "mix_auto": 0.10, "km_giorno": 25,  "autonomia_viaggio": 30},
-    "Viaggi frequenti fuori città":   {"mix_citta": 0.15, "mix_extra": 0.30, "mix_auto": 0.55, "km_giorno": 80,  "autonomia_viaggio": 250},
-    "Uso misto quotidiano":           {"mix_citta": 0.40, "mix_extra": 0.35, "mix_auto": 0.25, "km_giorno": 50,  "autonomia_viaggio": 100},
-    "Uso occasionale / weekend":      {"mix_citta": 0.50, "mix_extra": 0.30, "mix_auto": 0.20, "km_giorno": 15,  "autonomia_viaggio": 150},
+PROFILI_GUIDA = {
+    "🏙️ Quasi tutto in città": {
+        "descrizione": "Traffico, semafori, parcheggi. Autostrada solo in vacanza.",
+        "mix_citta": 0.80, "mix_extra": 0.15, "mix_auto": 0.05,
+        "km_giorno": 22, "autonomia_viaggio": 40,
+    },
+    "🏙️↔️ Città con qualche gita": {
+        "descrizione": "Quotidiano urbano, ma qualche weekend fuori o commissioni fuori città.",
+        "mix_citta": 0.60, "mix_extra": 0.25, "mix_auto": 0.15,
+        "km_giorno": 32, "autonomia_viaggio": 120,
+    },
+    "🔄 Mix equilibrato": {
+        "descrizione": "Città durante la settimana, extraurbano e autostrada con regolarità.",
+        "mix_citta": 0.40, "mix_extra": 0.35, "mix_auto": 0.25,
+        "km_giorno": 50, "autonomia_viaggio": 150,
+    },
+    "🛣️ Pendolare extraurbano": {
+        "descrizione": "Tragitto casa-lavoro su statali o tangenziali, poco traffico urbano.",
+        "mix_citta": 0.20, "mix_extra": 0.55, "mix_auto": 0.25,
+        "km_giorno": 65, "autonomia_viaggio": 80,
+    },
+    "🚗 Autostrada frequente": {
+        "descrizione": "Trasferte, clienti, viaggi lunghi. Autostrada più volte a settimana.",
+        "mix_citta": 0.15, "mix_extra": 0.25, "mix_auto": 0.60,
+        "km_giorno": 95, "autonomia_viaggio": 280,
+    },
+    "📅 Uso saltuario": {
+        "descrizione": "Meno di 4 volte a settimana, tragitti brevi, nessuna routine fissa.",
+        "mix_citta": 0.55, "mix_extra": 0.30, "mix_auto": 0.15,
+        "km_giorno": 12, "autonomia_viaggio": 60,
+    },
 }
 
 # ─── Session state ─────────────────────────────────────────────────────────────
@@ -104,8 +134,7 @@ for _k, _v in _DEFAULTS.items():
 
 
 def _reset():
-    for k in list(_DEFAULTS.keys()) + ["chk_neo", "chk_piva",
-            "s1_citta", "s1_extra", "s1_auto", "s1_prev_c", "s1_prev_e", "s1_prev_a"]:
+    for k in list(_DEFAULTS.keys()) + ["chk_neo", "chk_piva"]:
         if k in st.session_state:
             del st.session_state[k]
     st.rerun()
@@ -209,70 +238,19 @@ if step != "results":
 # ─── Step 1 ────────────────────────────────────────────────────────────────────
 
 if step == 1:
-    for k, v in [("s1_citta", 50), ("s1_extra", 30), ("s1_auto", 20),
-                 ("s1_prev_c", 50), ("s1_prev_e", 30), ("s1_prev_a", 20)]:
-        if k not in st.session_state:
-            st.session_state[k] = v
-
-    st.subheader("Come usi l'auto di solito?")
-    st.caption("Distribuisci il tuo utilizzo tipico — i valori si adattano automaticamente")
-
-    c = st.slider("🏙️ Città e traffico urbano",    0, 100, step=5, format="%d%%", key="s1_citta")
-    e = st.slider("🛣️ Extraurbano e strade statali", 0, 100, step=5, format="%d%%", key="s1_extra")
-    a = st.slider("🚗 Autostrada",                  0, 100, step=5, format="%d%%", key="s1_auto")
-
-    prev_c = st.session_state.s1_prev_c
-    prev_e = st.session_state.s1_prev_e
-    prev_a = st.session_state.s1_prev_a
-
-    def _spread(new_val, o1_prev, o2_prev):
-        remaining = 100 - new_val
-        total_prev = o1_prev + o2_prev
-        if total_prev > 0:
-            r1 = int(round(o1_prev / total_prev * remaining / 5)) * 5
-            r1 = max(0, min(remaining, r1))
-        else:
-            r1 = (remaining // 10) * 5
-        return r1, remaining - r1
-
-    changed = False
-    if c != prev_c:
-        new_e, new_a = _spread(c, prev_e, prev_a)
-        st.session_state.s1_extra, st.session_state.s1_auto = new_e, new_a
-        changed = True
-    elif e != prev_e:
-        new_c, new_a = _spread(e, prev_c, prev_a)
-        st.session_state.s1_citta, st.session_state.s1_auto = new_c, new_a
-        changed = True
-    elif a != prev_a:
-        new_c, new_e = _spread(a, prev_c, prev_e)
-        st.session_state.s1_citta, st.session_state.s1_extra = new_c, new_e
-        changed = True
-
-    if changed:
-        st.session_state.s1_prev_c = st.session_state.s1_citta
-        st.session_state.s1_prev_e = st.session_state.s1_extra
-        st.session_state.s1_prev_a = st.session_state.s1_auto
-        st.rerun()
-
-    totale = c + e + a
-    if totale == 100:
-        st.success(f"Totale: {totale}%  ✓")
-    else:
-        st.error(f"Totale: {totale}% — deve essere esattamente 100%")
-
-    mix_c, mix_e, mix_a = c / 100, e / 100, a / 100
-    km_calc = round(mix_c * 20 + mix_e * 60 + mix_a * 120)
-    autonomia_calc = 250 if mix_a >= 0.40 else 120 if mix_e >= 0.40 else 50
-
-    st.caption(f"Stima km/giorno: ~{km_calc} km")
-    st.write("")
-    if st.button("Avanti →", use_container_width=True, type="primary", disabled=(totale != 100)):
-        _avanza({
-            "mix_citta": mix_c, "mix_extra": mix_e, "mix_auto": mix_a,
-            "km_giorno": km_calc, "autonomia_viaggio": autonomia_calc,
-            "label_uso": f"Città {c}% · Extra {e}% · Auto {a}%",
-        }, 2)
+    st.subheader("Che tipo di guidatore sei?")
+    st.caption("Scegli il profilo che descrive meglio il tuo utilizzo quotidiano")
+    for i, (nome, p) in enumerate(PROFILI_GUIDA.items()):
+        label = f"{nome}\n{p['descrizione']}"
+        if st.button(label, use_container_width=True, key=f"s1_p{i}"):
+            _avanza({
+                "mix_citta":         p["mix_citta"],
+                "mix_extra":         p["mix_extra"],
+                "mix_auto":          p["mix_auto"],
+                "km_giorno":         p["km_giorno"],
+                "autonomia_viaggio": p["autonomia_viaggio"],
+                "label_uso":         nome,
+            }, 2)
 
 # ─── Step 2 ────────────────────────────────────────────────────────────────────
 
