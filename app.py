@@ -104,7 +104,8 @@ for _k, _v in _DEFAULTS.items():
 
 
 def _reset():
-    for k in list(_DEFAULTS.keys()) + ["chk_neo", "chk_piva"]:
+    for k in list(_DEFAULTS.keys()) + ["chk_neo", "chk_piva",
+            "s1_citta", "s1_extra", "s1_auto", "s1_prev_c", "s1_prev_e", "s1_prev_a"]:
         if k in st.session_state:
             del st.session_state[k]
     st.rerun()
@@ -208,20 +209,70 @@ if step != "results":
 # ─── Step 1 ────────────────────────────────────────────────────────────────────
 
 if step == 1:
+    for k, v in [("s1_citta", 50), ("s1_extra", 30), ("s1_auto", 20),
+                 ("s1_prev_c", 50), ("s1_prev_e", 30), ("s1_prev_a", 20)]:
+        if k not in st.session_state:
+            st.session_state[k] = v
+
     st.subheader("Come usi l'auto di solito?")
-    OPZIONI = [
-        ("🏙️  Tragitto casa-lavoro in città",
-         {**MAPPING_USO["Tragitto casa-lavoro in città"], "label_uso": "Uso città"}),
-        ("🛣️  Viaggi frequenti fuori città",
-         {**MAPPING_USO["Viaggi frequenti fuori città"],  "label_uso": "Fuori città"}),
-        ("🔄  Uso misto quotidiano",
-         {**MAPPING_USO["Uso misto quotidiano"],          "label_uso": "Uso misto"}),
-        ("🌅  Uso occasionale / weekend",
-         {**MAPPING_USO["Uso occasionale / weekend"],     "label_uso": "Uso weekend"}),
-    ]
-    for i, (lbl, vals) in enumerate(OPZIONI):
-        if st.button(lbl, use_container_width=True, key=f"s1_{i}"):
-            _avanza(vals, 2)
+    st.caption("Distribuisci il tuo utilizzo tipico — i valori si adattano automaticamente")
+
+    c = st.slider("🏙️ Città e traffico urbano",    0, 100, step=5, format="%d%%", key="s1_citta")
+    e = st.slider("🛣️ Extraurbano e strade statali", 0, 100, step=5, format="%d%%", key="s1_extra")
+    a = st.slider("🚗 Autostrada",                  0, 100, step=5, format="%d%%", key="s1_auto")
+
+    prev_c = st.session_state.s1_prev_c
+    prev_e = st.session_state.s1_prev_e
+    prev_a = st.session_state.s1_prev_a
+
+    def _spread(new_val, o1_prev, o2_prev):
+        remaining = 100 - new_val
+        total_prev = o1_prev + o2_prev
+        if total_prev > 0:
+            r1 = int(round(o1_prev / total_prev * remaining / 5)) * 5
+            r1 = max(0, min(remaining, r1))
+        else:
+            r1 = (remaining // 10) * 5
+        return r1, remaining - r1
+
+    changed = False
+    if c != prev_c:
+        new_e, new_a = _spread(c, prev_e, prev_a)
+        st.session_state.s1_extra, st.session_state.s1_auto = new_e, new_a
+        changed = True
+    elif e != prev_e:
+        new_c, new_a = _spread(e, prev_c, prev_a)
+        st.session_state.s1_citta, st.session_state.s1_auto = new_c, new_a
+        changed = True
+    elif a != prev_a:
+        new_c, new_e = _spread(a, prev_c, prev_e)
+        st.session_state.s1_citta, st.session_state.s1_extra = new_c, new_e
+        changed = True
+
+    if changed:
+        st.session_state.s1_prev_c = st.session_state.s1_citta
+        st.session_state.s1_prev_e = st.session_state.s1_extra
+        st.session_state.s1_prev_a = st.session_state.s1_auto
+        st.rerun()
+
+    totale = c + e + a
+    if totale == 100:
+        st.success(f"Totale: {totale}%  ✓")
+    else:
+        st.error(f"Totale: {totale}% — deve essere esattamente 100%")
+
+    mix_c, mix_e, mix_a = c / 100, e / 100, a / 100
+    km_calc = round(mix_c * 20 + mix_e * 60 + mix_a * 120)
+    autonomia_calc = 250 if mix_a >= 0.40 else 120 if mix_e >= 0.40 else 50
+
+    st.caption(f"Stima km/giorno: ~{km_calc} km")
+    st.write("")
+    if st.button("Avanti →", use_container_width=True, type="primary", disabled=(totale != 100)):
+        _avanza({
+            "mix_citta": mix_c, "mix_extra": mix_e, "mix_auto": mix_a,
+            "km_giorno": km_calc, "autonomia_viaggio": autonomia_calc,
+            "label_uso": f"Città {c}% · Extra {e}% · Auto {a}%",
+        }, 2)
 
 # ─── Step 2 ────────────────────────────────────────────────────────────────────
 
