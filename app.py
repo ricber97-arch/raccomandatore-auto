@@ -283,6 +283,12 @@ elif step == 5:
 # ─── Risultati ─────────────────────────────────────────────────────────────────
 
 elif step == "results":
+    _required = ["km_giorno", "mix_citta", "mix_extra", "mix_auto",
+                 "ricarica_a_casa", "budget", "n_passeggeri"]
+    if any(st.session_state.get(k) is None for k in _required):
+        st.session_state.step = 1
+        st.rerun()
+
     profilo = ProfiloUtente(
         km_giorno             = st.session_state.km_giorno,
         mix_citta             = st.session_state.mix_citta,
