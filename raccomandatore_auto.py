@@ -234,15 +234,17 @@ def contesto_stradale_score(auto: "Auto", contesto_stradale: str) -> int:
     """Bonus/malus dimensione e trazione in base al contesto stradale."""
     score = 0
     if contesto_stradale == "centro":
-        if auto.lunghezza_mm is not None:
-            if auto.lunghezza_mm < 4000:    score += 20
-            elif auto.lunghezza_mm < 4200:  score += 10
-            elif auto.lunghezza_mm > 4500:  score -= 15
-            elif auto.lunghezza_mm > 4300:  score -= 5
+        lunghezza = getattr(auto, "lunghezza_mm", None)
+        if lunghezza is not None:
+            if lunghezza < 4000:    score += 20
+            elif lunghezza < 4200:  score += 10
+            elif lunghezza > 4500:  score -= 15
+            elif lunghezza > 4300:  score -= 5
     elif contesto_stradale == "montagna":
-        if auto.trazione_prevalente:
-            t = auto.trazione_prevalente.lower()
-            if "integrale" in t:   score += 30
+        trazione = getattr(auto, "trazione_prevalente", None)
+        if trazione:
+            t = trazione.lower()
+            if "integrale" in t:    score += 30
             elif "inseribile" in t: score += 15
     return score
 

@@ -259,7 +259,7 @@ details summary:hover { color: var(--g-black); }
 
 # ─── Cache catalogo ────────────────────────────────────────────────────────────
 
-@st.cache_data(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def get_catalogo():
     return carica_auto()
 
