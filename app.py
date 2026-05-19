@@ -10,8 +10,6 @@ from raccomandatore_auto import (
     carica_auto,
     raccomanda,
     score_auto,
-    spiega_motorizzazione,
-    spiega_scelta,
 )
 
 # ─── Config ────────────────────────────────────────────────────────────────────
@@ -264,6 +262,89 @@ details summary:hover { color: var(--g-black); }
 @st.cache_data(show_spinner=False)
 def get_catalogo():
     return carica_auto()
+
+# ─── Spiegazioni dinamiche (definite qui per evitare dipendenze extra) ──────────
+
+def spiega_motorizzazione(ft, profilo):
+    ft = ft.lower()
+    ricarica = profilo.ricarica_a_casa
+    km       = profilo.km_giorno
+    mix_c    = profilo.mix_citta
+    mix_a    = profilo.mix_auto
+    if ft == "electric":
+        if ricarica and mix_c >= 0.55:
+            costo_anno = round(km * 365 * 0.15 * 0.25)
+            return ("Uso urbano + ricarica a casa: costo energia stimato ~{}€/anno. "
+                    "Zero emissioni in città, manutenzione ridotta al minimo.").format(costo_anno)
+        if ricarica:
+            return ("Con ricarica domestica elimini quasi del tutto il costo del carburante. "
+                    "Ideale per chi ha percorsi quotidiani prevedibili.")
+        return ("Elettrico senza ricarica a casa: richiede accesso frequente a colonnine "
+                "pubbliche nei pressi di casa o del lavoro.")
+    if ft == "petrol/electric":
+        if ricarica:
+            return ("Ibrido plug-in: i tragitti brevi in modalità elettrica, i lunghi col termico. "
+                    "Con ricarica domestica è la scelta più versatile per uso misto.")
+        return ("Ibrido plug-in senza ricarica: funziona come un termico efficiente, "
+                "con il motore benzina sempre disponibile come backup.")
+    if ft == "diesel":
+        if mix_a >= 0.40 or km > 80:
+            return ("Diesel: la motorizzazione più efficiente per chi percorre molti km "
+                    "in autostrada o su extraurbano ({} km/giorno medi).").format(km)
+        return ("Diesel efficiente nei percorsi misti. Consumi ridotti su lunghi tragitti, "
+                "meno vantaggioso nell'uso esclusivamente urbano.")
+    if ft == "lpg":
+        return ("GPL a ~0,85 €/L: a parità di km percorsi, circa la metà del costo rispetto "
+                "alla benzina. Rete distributori capillare in Italia.")
+    if ft == "petrol":
+        if mix_c >= 0.60:
+            return ("Benzina semplice e affidabile per uso prevalentemente urbano. "
+                    "Rete distributori ovunque, manutenzione senza sorprese.")
+        return ("Benzina affidabile e flessibile per utilizzo misto. "
+                "La scelta più diffusa, senza dipendere da infrastrutture specifiche.")
+    return "Motorizzazione compatibile con il tuo profilo di utilizzo."
+
+
+def spiega_scelta(auto, profilo, rank, score=None):
+    RANK_INTRO = {1: "La scelta migliore per te", 2: "Ottima alternativa", 3: "Valida opzione"}
+    intro = RANK_INTRO.get(rank, "Opzione #{}".format(rank))
+    if score is None:
+        return "{}: ottimo compromesso tra budget, motorizzazione e dimensioni.".format(intro)
+    # Costruisce dizionario punti per categoria (somma)
+    cats = set(c for c, _, _ in score.voci)
+    punti = {c: sum(p for cc, p, _ in score.voci if cc == c) for c in cats}
+    frasi = []
+    # Budget
+    if punti.get("budget", 0) >= 35 and auto.prezzo:
+        pct = round(auto.prezzo / profilo.budget_acquisto_eur * 100)
+        frasi.append("usa il {}% del tuo budget".format(pct))
+    # Alimentazione
+    alim_pts = punti.get("alimentazione", 0)
+    FT_IT = {
+        "electric": "elettrica", "petrol/electric": "ibrida PHEV",
+        "diesel": "diesel", "lpg": "GPL", "petrol": "benzina",
+    }
+    ft_it = FT_IT.get(auto.alimentazione, auto.alimentazione)
+    if alim_pts >= 70:
+        frasi.append("motorizzazione {} ideale per il tuo mix di percorsi".format(ft_it))
+    elif alim_pts >= 50:
+        frasi.append("motorizzazione {} compatibile con le tue abitudini".format(ft_it))
+    # Contesto stradale
+    if punti.get("contesto_stradale", 0) >= 20:
+        if profilo.contesto_stradale == "centro" and auto.lunghezza_mm:
+            frasi.append("compatta ({:.2f} m) per centro e ZTL".format(auto.lunghezza_mm / 1000))
+        elif profilo.contesto_stradale == "montagna":
+            frasi.append("trazione integrale per fondi sdrucciolevoli")
+    # Bagagliaio famiglia
+    sp_pos = [(c, p, d) for c, p, d in score.voci if c == "spazio" and p > 0]
+    if sp_pos and auto.bagagliaio and profilo.n_passeggeri_abituali >= 4:
+        frasi.append("bagagliaio da {:.0f} L per tutta la famiglia".format(auto.bagagliaio))
+    # Marca
+    if punti.get("marca", 0) >= 15:
+        frasi.append("brand {} in linea con il tuo profilo".format(auto.marca))
+    if not frasi:
+        return "{}: il miglior punteggio complessivo tra tutte le auto del catalogo.".format(intro)
+    return "{}: ".format(intro) + ", ".join(frasi) + "."
 
 # ─── Dati wizard (formato lista per numerazione automatica) ───────────────────
 
