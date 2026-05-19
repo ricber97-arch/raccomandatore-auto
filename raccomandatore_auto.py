@@ -168,6 +168,14 @@ def budget_score(prezzo: Optional[float], budget: float, mentalita: str = "quali
         if ratio <= 1.0:    return 5
         return 0
     elif mentalita == "premium":
+        # Budget molto alto (>55k): tolleranza più ampia su auto di lusso
+        if budget >= 55_000:
+            if ratio < 0.45:    return 0    # troppo economico anche per il premium alto
+            if ratio < 0.65:    return 15
+            if ratio < 0.85:    return 30
+            if ratio <= 1.15:   return 45   # sweet spot luxury (fino a +15%)
+            if ratio <= 1.20:   return 20
+            return 0
         if ratio < 0.60:    return 0    # troppo economico per questo profilo
         if ratio < 0.75:    return 15
         if ratio < 0.90:    return 30
@@ -253,6 +261,104 @@ def autonomia_score(ft: str, autonomia_utente: str, ricarica_a_casa: bool) -> in
     if ft == "petrol/electric":
         if autonomia_utente == "lunga":  return 10
     return 0
+
+
+# ── Spiegazioni dinamiche ─────────────────────────────────────────────────────
+
+def spiega_motorizzazione(ft: str, profilo: "ProfiloUtente") -> str:
+    """Spiega in linguaggio naturale perché la motorizzazione si adatta al profilo."""
+    ft = ft.lower()
+    ricarica = profilo.ricarica_a_casa
+    km       = profilo.km_giorno
+    mix_c    = profilo.mix_citta
+    mix_a    = profilo.mix_auto
+
+    if ft == "electric":
+        if ricarica and mix_c >= 0.55:
+            costo_anno = round(km * 365 * 0.15 * 0.25)
+            return (f"Uso urbano + ricarica a casa: costo energia stimato ~{costo_anno}€/anno. "
+                    f"Zero emissioni in città, manutenzione ridotta al minimo.")
+        if ricarica:
+            return ("Con ricarica domestica elimini quasi del tutto il costo del carburante. "
+                    "Ideale per chi ha percorsi quotidiani prevedibili.")
+        return ("Elettrico senza ricarica a casa: richiede accesso frequente a colonnine pubbliche "
+                "nei pressi di casa o del lavoro.")
+    if ft == "petrol/electric":
+        if ricarica:
+            return ("Ibrido plug-in: i tragitti brevi in modalità elettrica, i lunghi col termico. "
+                    "Con ricarica domestica è la scelta più versatile per uso misto.")
+        return ("Ibrido plug-in senza ricarica: funziona come un termico efficiente, "
+                "con il motore benzina sempre disponibile come backup.")
+    if ft == "diesel":
+        if mix_a >= 0.40 or km > 80:
+            return (f"Diesel: la motorizzazione più efficiente per chi percorre molti km "
+                    f"in autostrada o su extraurbano ({km} km/giorno medi).")
+        return ("Diesel efficiente nei percorsi misti. Consumi ridotti su lunghi tragitti, "
+                "meno vantaggioso nell'uso esclusivamente urbano.")
+    if ft == "lpg":
+        return ("GPL a ~0,85 €/L: a parità di km percorsi, circa la metà del costo rispetto alla "
+                "benzina. Rete distributori capillare in Italia.")
+    if ft == "petrol":
+        if mix_c >= 0.60:
+            return ("Benzina semplice e affidabile per uso prevalentemente urbano. "
+                    "Rete distributori ovunque, manutenzione senza sorprese.")
+        return ("Benzina affidabile e flessibile per utilizzo misto. "
+                "La scelta più diffusa, senza dipendere da infrastrutture specifiche.")
+    return "Motorizzazione compatibile con il tuo profilo di utilizzo."
+
+
+def spiega_scelta(auto: "Auto", profilo: "ProfiloUtente", rank: int,
+                  score: Optional["DettaglioScore"] = None) -> str:
+    """Genera una frase narrativa che giustifica la scelta dell'auto."""
+    RANK_INTRO = {1: "La scelta migliore per te", 2: "Ottima alternativa", 3: "Valida opzione"}
+    intro = RANK_INTRO.get(rank, f"Opzione #{rank}")
+
+    if score is None:
+        return f"{intro}: ottimo compromesso tra budget, motorizzazione e dimensioni."
+
+    punti = {c: sum(p for cc, p, _ in score.voci if cc == c) for c in set(c for c, _, _ in score.voci)}
+    frasi: list[str] = []
+
+    # Budget
+    budget_pts = punti.get("budget", 0)
+    if budget_pts >= 35 and auto.prezzo:
+        pct = round(auto.prezzo / profilo.budget_acquisto_eur * 100)
+        frasi.append(f"usa il {pct}% del tuo budget")
+
+    # Alimentazione
+    alim_pts = punti.get("alimentazione", 0)
+    _FT_IT = {
+        "electric": "elettrica", "petrol/electric": "ibrida PHEV",
+        "diesel": "diesel", "lpg": "GPL", "petrol": "benzina",
+    }
+    ft_it = _FT_IT.get(auto.alimentazione, auto.alimentazione)
+    if alim_pts >= 70:
+        frasi.append(f"motorizzazione {ft_it} ideale per il tuo mix di percorsi")
+    elif alim_pts >= 50:
+        frasi.append(f"motorizzazione {ft_it} compatibile con le tue abitudini")
+
+    # Contesto stradale
+    cs_pts = punti.get("contesto_stradale", 0)
+    if cs_pts >= 20:
+        if profilo.contesto_stradale == "centro" and auto.lunghezza_mm:
+            frasi.append(f"compatta ({auto.lunghezza_mm / 1000:.2f} m) per centro e ZTL")
+        elif profilo.contesto_stradale == "montagna":
+            frasi.append("trazione integrale per fondi sdrucciolevoli")
+
+    # Spazio/bagagliaio
+    sp_pos = [(c, p, d) for c, p, d in score.voci if c == "spazio" and p > 0]
+    if sp_pos and auto.bagagliaio and profilo.n_passeggeri_abituali >= 4:
+        frasi.append(f"bagagliaio da {auto.bagagliaio:.0f} L per tutta la famiglia")
+
+    # Marca
+    marca_pts = punti.get("marca", 0)
+    if marca_pts >= 15:
+        frasi.append(f"brand {auto.marca} in linea con il tuo profilo")
+
+    if not frasi:
+        return f"{intro}: il miglior punteggio complessivo tra tutte le auto del catalogo."
+
+    return f"{intro}: " + ", ".join(frasi) + "."
 
 
 # ── Costo carburante / energia ─────────────────────────────────────────────────
@@ -356,6 +462,10 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
     mix_c             = profilo.mix_citta
     mix_e             = profilo.mix_extra
     mix_a             = profilo.mix_auto
+
+    # ── Vincolo assoluto: auto di lusso oltre 150k escluse (fuori mercato di massa) ─
+    if auto.prezzo is not None and auto.prezzo > 150_000:
+        return None
 
     # ── Vincolo neopatentato (Italia: max 55 kW/t per i primi 3 anni) ──────────
     # peso_kg non disponibile nel DB 2026 → rapporto_peso_potenza sempre None,

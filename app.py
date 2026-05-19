@@ -10,67 +10,251 @@ from raccomandatore_auto import (
     carica_auto,
     raccomanda,
     score_auto,
+    spiega_motorizzazione,
+    spiega_scelta,
 )
 
 # ─── Config ────────────────────────────────────────────────────────────────────
 
-st.set_page_config(page_title="Trova la tua auto", page_icon="🚗", layout="centered")
+st.set_page_config(page_title="guidami", page_icon="🚗", layout="centered")
+
+# ─── Design System CSS ─────────────────────────────────────────────────────────
 
 st.markdown("""
 <style>
-/* ── Bottoni wizard ── */
+/* ── Variables ── */
+:root {
+    --g-black:   #111111;
+    --g-accent:  #C45C00;
+    --g-accent2: #E8A87C;
+    --g-bg:      #F7F7F5;
+    --g-surface: #FFFFFF;
+    --g-border:  #E0DDD8;
+    --g-text:    #2C2C2C;
+    --g-muted:   #8A8580;
+    --g-green:   #1A6B3A;
+    --g-red:     #C0392B;
+    --g-r:       10px;
+    --g-shadow:  0 2px 12px rgba(0,0,0,0.07);
+}
+
+/* ── Brand header ── */
+.g-brand {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    padding: 4px 0 22px 0;
+}
+.g-logo {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: var(--g-black);
+    letter-spacing: -0.04em;
+}
+.g-logo span { color: var(--g-accent); }
+.g-tagline {
+    font-size: 0.88rem;
+    color: var(--g-muted);
+    font-weight: 400;
+}
+
+/* ── Progress bar ── */
+.g-prog-wrap { margin-bottom: 20px; }
+.g-prog-track {
+    height: 3px;
+    background: var(--g-border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 7px;
+}
+.g-prog-fill {
+    height: 100%;
+    background: var(--g-accent);
+    border-radius: 2px;
+}
+.g-prog-label {
+    font-size: 0.72rem;
+    color: var(--g-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* ── Riepilogo ── */
+.g-recap {
+    font-size: 0.82rem;
+    color: var(--g-muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+/* ── Divider ── */
+.g-div {
+    height: 1px;
+    background: var(--g-border);
+    margin: 0 0 22px 0;
+}
+
+/* ── Wizard buttons ── */
 div[data-testid="stButton"] > button {
     text-align: left !important;
-    padding: 14px 20px !important;
-    font-size: 1rem !important;
+    padding: 16px 20px !important;
+    font-size: 0.94rem !important;
     height: auto !important;
-    white-space: normal !important;
-    line-height: 1.4 !important;
+    white-space: pre-wrap !important;
+    line-height: 1.5 !important;
+    border-radius: var(--g-r) !important;
+    border: 1.5px solid var(--g-border) !important;
+    background: var(--g-surface) !important;
+    color: var(--g-text) !important;
+    box-shadow: var(--g-shadow) !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+    font-family: inherit !important;
 }
-/* ── Card risultato ── */
-.auto-card {
-    background: #f8f9fa;
-    border-left: 5px solid #1a73e8;
-    border-radius: 8px;
-    padding: 20px 24px;
-    margin-bottom: 20px;
+div[data-testid="stButton"] > button:hover {
+    border-color: var(--g-accent) !important;
+    box-shadow: 0 4px 18px rgba(196,92,0,0.13) !important;
+    background: #FFF8F4 !important;
 }
-.auto-card h3 { margin: 0 0 4px 0; font-size: 1.15rem; color: #111; }
-.badge {
+div[data-testid="stButton"] > button::first-line {
+    font-weight: 700 !important;
+    color: var(--g-black) !important;
+    font-size: 1rem !important;
+}
+
+/* ── Result cards ── */
+.g-rcard {
+    background: var(--g-surface);
+    border: 1.5px solid var(--g-border);
+    border-radius: 14px;
+    padding: 24px 26px 20px;
+    margin-bottom: 22px;
+    box-shadow: var(--g-shadow);
+}
+.g-rcard h2 {
+    margin: 10px 0 8px 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--g-black);
+    line-height: 1.3;
+}
+.g-badge {
     display: inline-block;
     color: white;
-    font-size: 0.72rem;
-    font-weight: 600;
-    padding: 2px 9px;
+    font-size: 0.69rem;
+    font-weight: 700;
+    padding: 4px 12px;
     border-radius: 999px;
-    margin-bottom: 10px;
-    letter-spacing: .03em;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
 }
-.spiegazione {
-    font-size: 0.93rem;
-    color: #333;
-    margin: 0 0 14px 0;
-    padding-left: 10px;
-    border-left: 3px solid #e0e0e0;
+.g-why {
+    font-size: 0.91rem;
+    color: var(--g-text);
+    margin: 0 0 16px 0;
+    line-height: 1.6;
     font-style: italic;
 }
-.stat-row { display: flex; gap: 28px; flex-wrap: wrap; margin-bottom: 14px; }
-.stat { text-align: center; }
-.stat .val { font-size: 1.05rem; font-weight: 700; color: #1a73e8; }
-.stat .lbl { font-size: 0.72rem; color: #666; }
-.motivi { margin-top: 4px; }
-.motivo-pos { color: #1e8e3e; font-size: 0.85rem; margin: 2px 0; }
-.motivo-neg { color: #d93025; font-size: 0.85rem; margin: 2px 0; }
-.warn { color: #e37400; font-size: 0.82rem; margin-top: 8px; }
+.g-stats {
+    display: flex;
+    flex-wrap: wrap;
+    border: 1.5px solid var(--g-border);
+    border-radius: var(--g-r);
+    overflow: hidden;
+    margin-bottom: 14px;
+}
+.g-stat {
+    flex: 1;
+    min-width: 80px;
+    padding: 11px 14px;
+    border-right: 1px solid var(--g-border);
+    text-align: center;
+}
+.g-stat:last-child { border-right: none; }
+.g-stat-val {
+    display: block;
+    font-size: 0.98rem;
+    font-weight: 700;
+    color: var(--g-black);
+}
+.g-stat-lbl {
+    display: block;
+    font-size: 0.67rem;
+    color: var(--g-muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.g-motori {
+    font-size: 0.87rem;
+    color: var(--g-text);
+    background: rgba(196,92,0,0.06);
+    border-left: 3px solid var(--g-accent);
+    padding: 10px 14px;
+    border-radius: 0 var(--g-r) var(--g-r) 0;
+    margin-bottom: 14px;
+    line-height: 1.55;
+}
+.g-pro-con { margin-top: 10px; }
+.g-pro {
+    color: var(--g-green);
+    font-size: 0.84rem;
+    margin: 4px 0;
+}
+.g-con {
+    color: var(--g-red);
+    font-size: 0.84rem;
+    margin: 4px 0;
+}
 details summary {
-    cursor: pointer; font-size: 0.82rem; color: #777; margin-top: 8px;
+    cursor: pointer;
+    font-size: 0.81rem;
+    color: var(--g-muted);
+    margin-top: 6px;
     user-select: none;
 }
-details summary:hover { color: #333; }
-/* ── Bottoni profilo (step 1) — prima riga in grassetto ── */
-div[data-testid="stButton"] > button::first-line {
+details summary:hover { color: var(--g-black); }
+
+/* ── Exclusion block ── */
+.g-excl {
+    background: var(--g-bg);
+    border: 1.5px solid var(--g-border);
+    border-radius: var(--g-r);
+    padding: 16px 20px;
+    margin-top: 8px;
+}
+.g-excl h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.78rem;
+    color: var(--g-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     font-weight: 700;
+}
+.g-excl-item {
+    font-size: 0.86rem;
+    color: var(--g-text);
+    margin: 5px 0;
+    line-height: 1.45;
+}
+.g-excl-item strong { color: var(--g-black); }
+
+/* ── Footer ── */
+.g-footer {
+    margin-top: 36px;
+    padding-top: 16px;
+    border-top: 1px solid var(--g-border);
+    font-size: 0.76rem;
+    color: var(--g-muted);
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* ── Warning ── */
+.g-warn {
+    font-size: 0.82rem;
+    color: #a05000;
+    margin: 8px 0 0 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -81,87 +265,121 @@ div[data-testid="stButton"] > button::first-line {
 def get_catalogo():
     return carica_auto()
 
-# ─── Profili di guida (step 1) ────────────────────────────────────────────────
+# ─── Dati wizard (formato lista per numerazione automatica) ───────────────────
 
-PROFILI_GUIDA = {
-    "🏙️ Quasi tutto in città": {
+PROFILI_GUIDA = [
+    {
+        "titolo": "Quasi tutto in città",
         "descrizione": "Traffico, semafori, parcheggi. Autostrada solo in vacanza.",
         "mix_citta": 0.80, "mix_extra": 0.15, "mix_auto": 0.05,
         "km_giorno": 22, "autonomia_viaggio": 40,
     },
-    "🏙️↔️ Città con qualche gita": {
-        "descrizione": "Quotidiano urbano, ma qualche weekend fuori o commissioni fuori città.",
+    {
+        "titolo": "Città con qualche gita",
+        "descrizione": "Quotidiano urbano, ma qualche weekend fuori o commissioni lontane.",
         "mix_citta": 0.60, "mix_extra": 0.25, "mix_auto": 0.15,
         "km_giorno": 32, "autonomia_viaggio": 120,
     },
-    "🔄 Mix equilibrato": {
+    {
+        "titolo": "Mix equilibrato",
         "descrizione": "Città durante la settimana, extraurbano e autostrada con regolarità.",
         "mix_citta": 0.40, "mix_extra": 0.35, "mix_auto": 0.25,
         "km_giorno": 50, "autonomia_viaggio": 150,
     },
-    "🛣️ Pendolare extraurbano": {
+    {
+        "titolo": "Pendolare extraurbano",
         "descrizione": "Tragitto casa-lavoro su statali o tangenziali, poco traffico urbano.",
         "mix_citta": 0.20, "mix_extra": 0.55, "mix_auto": 0.25,
         "km_giorno": 65, "autonomia_viaggio": 80,
     },
-    "🚗 Autostrada frequente": {
+    {
+        "titolo": "Autostrada frequente",
         "descrizione": "Trasferte, clienti, viaggi lunghi. Autostrada più volte a settimana.",
         "mix_citta": 0.15, "mix_extra": 0.25, "mix_auto": 0.60,
         "km_giorno": 95, "autonomia_viaggio": 280,
     },
-    "📅 Uso saltuario": {
+    {
+        "titolo": "Uso saltuario",
         "descrizione": "Meno di 4 volte a settimana, tragitti brevi, nessuna routine fissa.",
         "mix_citta": 0.55, "mix_extra": 0.30, "mix_auto": 0.15,
         "km_giorno": 12, "autonomia_viaggio": 60,
     },
-}
+]
 
-# ─── Dati step 5-7 ────────────────────────────────────────────────────────────
+PASSEGGERI_OPZIONI = [
+    {"titolo": "Solo io",          "n": 1, "label": "Solo io"},
+    {"titolo": "Io + 1",           "n": 2, "label": "Io + 1"},
+    {"titolo": "Famiglia (3-4)",   "n": 4, "label": "Famiglia"},
+    {"titolo": "Spesso in 5",      "n": 5, "label": "Spesso in 5"},
+]
 
-MENTALITA_GUIDA = {
-    "💰 Spendo il minimo necessario": {
+RICARICA_OPZIONI = [
+    {"titolo": "Sì, ho garage con presa elettrica",  "ricarica": True,  "label": "Garage con presa"},
+    {"titolo": "Garage senza presa",                 "ricarica": False, "label": "Garage senza presa"},
+    {"titolo": "Parcheggio su strada o pubblico",    "ricarica": False, "label": "Parcheggio pubblico"},
+]
+
+BUDGET_OPZIONI = [
+    {"titolo": "Fino a 15.000 €",      "budget": 14_000,  "label": "Fino a 15k€"},
+    {"titolo": "15.000 – 25.000 €",    "budget": 23_000,  "label": "15–25k€"},
+    {"titolo": "25.000 – 40.000 €",    "budget": 37_000,  "label": "25–40k€"},
+    {"titolo": "40.000 – 60.000 €",    "budget": 56_000,  "label": "40–60k€"},
+    {"titolo": "Oltre 60.000 €",       "budget": 110_000, "label": "Oltre 60k€"},
+]
+
+MENTALITA_OPZIONI = [
+    {
+        "titolo": "Spendo il minimo necessario",
         "descrizione": "L'auto è un mezzo. Voglio spendere poco e risparmiare sulla gestione.",
         "valore": "minimo",
     },
-    "⚖️ Cerco il miglior rapporto qualità/prezzo": {
+    {
+        "titolo": "Miglior rapporto qualità/prezzo",
         "descrizione": "Voglio sfruttare bene il mio budget senza rinunciare a qualità e tecnologia.",
         "valore": "qualita",
     },
-    "✨ Sono disposto a spendere di più per qualità": {
+    {
+        "titolo": "Qualità prima di tutto",
         "descrizione": "Marca, finiture e tecnologia contano. Il budget è una guida, non un limite fisso.",
         "valore": "premium",
     },
-}
+]
 
-CONTESTO_STRADALE = {
-    "🏙️ Centro città, ZTL, parcheggi stretti": {
+CONTESTO_STRADALE_OPZIONI = [
+    {
+        "titolo": "Centro città, ZTL, parcheggi stretti",
         "descrizione": "Traffico intenso, manovre frequenti, spazi ridotti. Le dimensioni contano.",
         "valore": "centro",
     },
-    "🌆 Periferia e circonvallazioni": {
+    {
+        "titolo": "Periferia e circonvallazioni",
         "descrizione": "Strade scorrevoli, parcheggi comodi. Nessun vincolo particolare.",
         "valore": "periferia",
     },
-    "🏔️ Strade di montagna o sterrato": {
+    {
+        "titolo": "Strade di montagna o sterrato",
         "descrizione": "Curve, salite, fondi sconnessi o innevati. La trazione fa la differenza.",
         "valore": "montagna",
     },
-}
+]
 
-AUTONOMIA_OPZIONI = {
-    "🏠 No, al massimo 80-100km in una volta": {
+AUTONOMIA_OPZIONI = [
+    {
+        "titolo": "No, al massimo 80-100 km in una volta",
         "descrizione": "Uso quotidiano locale. Non ho bisogno di grande autonomia.",
         "valore": "corta",
     },
-    "🗺️ Qualche volta, tra 100 e 300km": {
+    {
+        "titolo": "Qualche volta, tra 100 e 300 km",
         "descrizione": "Ogni tanto faccio tragitti più lunghi, ma non è la norma.",
         "valore": "media",
     },
-    "🛣️ Sì, spesso faccio oltre 300km senza soste": {
+    {
+        "titolo": "Sì, spesso faccio oltre 300 km senza soste",
         "descrizione": "Viaggi frequenti e lunghi. L'autonomia è una priorità.",
         "valore": "lunga",
     },
-}
+]
 
 # ─── Session state ─────────────────────────────────────────────────────────────
 
@@ -207,38 +425,6 @@ def _avanza(vals: dict, next_step):
     st.session_state.step = next_step
     st.rerun()
 
-# ─── Helper: spiegazione dinamica ─────────────────────────────────────────────
-
-def _spiegazione(auto, profilo: ProfiloUtente) -> str:
-    km = profilo.km_giorno
-    uso_city    = profilo.mix_citta >= 0.60
-    uso_highway = profilo.mix_auto  >= 0.50
-    if auto.is_elettrica:
-        if uso_city and km <= 40:
-            costo = km * 365 / 100 * 18 * 0.25
-            return (f"Con {km:.0f} km/giorno in città il costo energia stimato è ~{costo:.0f}€/anno "
-                    f"— meno di un pieno al mese di benzina.")
-        return "Ideale per uso urbano con ricarica domestica: zero emissioni e costi di esercizio bassi."
-    if auto.is_phev:
-        if profilo.ricarica_a_casa:
-            return ("I tragitti brevi in modalità elettrica, il resto col termico. "
-                    "Con ricarica domestica è la scelta più versatile per uso misto.")
-        return "Flessibile anche senza ricarica: il motore termico è sempre disponibile come backup."
-    if auto.is_full_hybrid:
-        return ("L'ibrido si ricarica da solo in frenata — nessuna presa necessaria, "
-                "consumi ridotti specialmente nel traffico urbano.")
-    if auto.is_diesel:
-        if uso_highway or km > 100:
-            consumo = f"{auto.consumo} l/100km" if auto.consumo else "ridotti"
-            return (f"Diesel efficiente per le tue percorrenze elevate: {consumo} "
-                    f"tra i più bassi tra le termiche su lunghi tragitti.")
-        return f"Consumi contenuti ({auto.consumo} l/100km) per chi percorre molti km su tratti misti."
-    if auto.is_lpg:
-        return "GPL a ~0,80€/L: a parità di km percorsi, si spende circa la metà rispetto alla benzina."
-    if auto.is_ng:
-        return "Metano, il carburante più economico: ideale per chi fa tanti km in città o in pianura."
-    return "Benzina affidabile e flessibile, adatta al tuo profilo di utilizzo quotidiano."
-
 # ─── Helper: analisi esclusi ───────────────────────────────────────────────────
 
 def _analizza_esclusi(catalogo, profilo: ProfiloUtente, top_risultati) -> list:
@@ -250,13 +436,15 @@ def _analizza_esclusi(catalogo, profilo: ProfiloUtente, top_risultati) -> list:
             continue
         det = score_auto(auto, profilo)
         if det is None:
-            if profilo.neopatentato and auto.rapporto_peso_potenza and auto.rapporto_peso_potenza > 55:
+            if auto.prezzo and auto.prezzo > 150_000:
+                cnt["luxury"] += 1
+            elif profilo.neopatentato and auto.rapporto_peso_potenza and auto.rapporto_peso_potenza > 55:
                 cnt["neopatentato"] += 1
             elif auto.is_elettrica:
                 cnt["ev_no_ricarica"] += 1
         else:
-            # Con il nuovo budget_score, fuori budget = score 0 E prezzo > budget*1.10
-            if auto.prezzo and auto.prezzo > profilo.budget_acquisto_eur * 1.10:
+            tol = 1.20 if profilo.mentalita == "premium" else (1.05 if profilo.mentalita == "minimo" else 1.10)
+            if auto.prezzo and auto.prezzo > profilo.budget_acquisto_eur * tol:
                 cnt["budget"] += 1
             else:
                 fuel_pts = sum(p for cat, p, _ in det.voci if cat == "alimentazione")
@@ -264,35 +452,49 @@ def _analizza_esclusi(catalogo, profilo: ProfiloUtente, top_risultati) -> list:
                     cnt["alimentazione"] += 1
 
     LABELS = {
+        "luxury":        "Oltre 150.000€: al di fuori del mercato di massa, escluse automaticamente",
         "neopatentato":  "Potenza eccessiva per neopatentati (>55 kW/t): escluse per legge",
-        "ev_no_ricarica":"Auto elettriche: senza ricarica domestica non sono pratiche per il tuo utilizzo",
-        "budget":        "Prezzo superiore al tuo budget (>10% oltre)",
+        "ev_no_ricarica": "Auto elettriche: senza ricarica domestica non sono pratiche per il tuo utilizzo",
+        "budget":        "Prezzo superiore al tuo budget",
         "alimentazione": "Alimentazione poco compatibile con il tuo mix di percorsi",
     }
     return [(LABELS[k], v) for k, v in cnt.most_common(3) if k in LABELS]
 
-# ─── Layout ────────────────────────────────────────────────────────────────────
+# ─── Brand header (sempre visibile) ────────────────────────────────────────────
 
-st.title("🚗 Trova la tua auto")
-st.caption("Database auto 2026 — oltre 400 versioni, prezzi di listino aggiornati")
+st.markdown("""
+<div class="g-brand">
+  <span class="g-logo">guida<span>mi</span></span>
+  <span class="g-tagline">trova la tua auto</span>
+</div>
+""", unsafe_allow_html=True)
 
 step = st.session_state.step
 
-if step != "results":
-    step_num = step if isinstance(step, int) else 8
-    st.progress(step_num / 8, text=f"Step {step_num} di 8")
-    riepilogo_txt = _riepilogo()
-    if riepilogo_txt:
-        st.caption(f"📋 {riepilogo_txt}")
-    st.markdown("---")
+# ─── Progress bar custom (7 passi) ─────────────────────────────────────────────
 
-# ─── Step 1 ────────────────────────────────────────────────────────────────────
+if step != "results":
+    step_num    = step if isinstance(step, int) else 8
+    display_step = min(step_num, 7)      # step 8 → mostra "7 di 7"
+    pct          = int(display_step / 7 * 100)
+    riepilogo_txt = _riepilogo()
+    st.markdown(f"""
+<div class="g-prog-wrap">
+  <div class="g-prog-track"><div class="g-prog-fill" style="width:{pct}%"></div></div>
+  <div class="g-prog-label">Passo {display_step} di 7</div>
+</div>
+{('<div class="g-recap">📋 ' + riepilogo_txt + '</div>') if riepilogo_txt else ''}
+<div class="g-div"></div>
+""", unsafe_allow_html=True)
+
+# ─── Step 1 — Profilo di guida ─────────────────────────────────────────────────
 
 if step == 1:
     st.subheader("Che tipo di guidatore sei?")
     st.caption("Scegli il profilo che descrive meglio il tuo utilizzo quotidiano")
-    for i, (nome, p) in enumerate(PROFILI_GUIDA.items()):
-        label = f"{nome}\n{p['descrizione']}"
+    for i, p in enumerate(PROFILI_GUIDA):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}\n{p['descrizione']}"
         if st.button(label, use_container_width=True, key=f"s1_p{i}"):
             _avanza({
                 "mix_citta":         p["mix_citta"],
@@ -300,81 +502,72 @@ if step == 1:
                 "mix_auto":          p["mix_auto"],
                 "km_giorno":         p["km_giorno"],
                 "autonomia_viaggio": p["autonomia_viaggio"],
-                "label_uso":         nome,
+                "label_uso":         p["titolo"],
             }, 2)
 
-# ─── Step 2 ────────────────────────────────────────────────────────────────────
+# ─── Step 2 — Passeggeri ──────────────────────────────────────────────────────
 
 elif step == 2:
     st.subheader("Quante persone trasporti di solito?")
-    OPZIONI = [
-        ("🧍  Solo io",           1, "Solo io"),
-        ("👫  Io + 1",            2, "Io + 1"),
-        ("👨‍👩‍👧  Famiglia (3-4)",  4, "Famiglia"),
-        ("🚐  Spesso in 5",       5, "Spesso in 5"),
-    ]
-    for i, (lbl, n, display) in enumerate(OPZIONI):
-        if st.button(lbl, use_container_width=True, key=f"s2_{i}"):
-            _avanza(dict(n_passeggeri=n, label_passeggeri=display), 3)
+    for i, p in enumerate(PASSEGGERI_OPZIONI):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}"
+        if st.button(label, use_container_width=True, key=f"s2_{i}"):
+            _avanza({"n_passeggeri": p["n"], "label_passeggeri": p["label"]}, 3)
 
-# ─── Step 3 ────────────────────────────────────────────────────────────────────
+# ─── Step 3 — Ricarica ────────────────────────────────────────────────────────
 
 elif step == 3:
     st.subheader("Dove parcheggi la notte?")
-    OPZIONI = [
-        ("🔌  Garage con presa elettrica",   True,  "Garage con presa"),
-        ("🏠  Garage senza presa",           False, "Garage senza presa"),
-        ("🅿️  Strada o parcheggio pubblico", False, "Parcheggio pubblico"),
-    ]
-    for i, (lbl, ricarica, display) in enumerate(OPZIONI):
-        if st.button(lbl, use_container_width=True, key=f"s3_{i}"):
-            _avanza(dict(ricarica_a_casa=ricarica, label_parcheggio=display), 4)
+    for i, p in enumerate(RICARICA_OPZIONI):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}"
+        if st.button(label, use_container_width=True, key=f"s3_{i}"):
+            _avanza({"ricarica_a_casa": p["ricarica"], "label_parcheggio": p["label"]}, 4)
 
-# ─── Step 4 ────────────────────────────────────────────────────────────────────
+# ─── Step 4 — Budget (5 fasce) ────────────────────────────────────────────────
 
 elif step == 4:
     st.subheader("Qual è il tuo budget?")
-    OPZIONI = [
-        ("💶  Fino a 15.000€",    14_000, "Fino a 15k€"),
-        ("💶  15.000 – 25.000€",  23_000, "15–25k€"),
-        ("💶  25.000 – 40.000€",  37_000, "25–40k€"),
-        ("💶  Oltre 40.000€",     50_000, "Oltre 40k€"),
-    ]
-    for i, (lbl, budget, display) in enumerate(OPZIONI):
-        if st.button(lbl, use_container_width=True, key=f"s4_{i}"):
-            _avanza(dict(budget=budget, label_budget=display), 5)
+    for i, p in enumerate(BUDGET_OPZIONI):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}"
+        if st.button(label, use_container_width=True, key=f"s4_{i}"):
+            _avanza({"budget": p["budget"], "label_budget": p["label"]}, 5)
 
 # ─── Step 5 — Mentalità acquisto ───────────────────────────────────────────────
 
 elif step == 5:
     st.subheader("Come ragioni sull'acquisto?")
-    for i, (nome, m) in enumerate(MENTALITA_GUIDA.items()):
-        label = f"{nome}\n{m['descrizione']}"
+    for i, p in enumerate(MENTALITA_OPZIONI):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}\n{p['descrizione']}"
         if st.button(label, use_container_width=True, key=f"s5_m{i}"):
-            _avanza({"mentalita": m["valore"], "label_mentalita": nome}, 6)
+            _avanza({"mentalita": p["valore"], "label_mentalita": p["titolo"]}, 6)
 
 # ─── Step 6 — Contesto stradale ────────────────────────────────────────────────
 
 elif step == 6:
     st.subheader("Dove guidi principalmente?")
-    for i, (nome, c) in enumerate(CONTESTO_STRADALE.items()):
-        label = f"{nome}\n{c['descrizione']}"
+    for i, p in enumerate(CONTESTO_STRADALE_OPZIONI):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}\n{p['descrizione']}"
         if st.button(label, use_container_width=True, key=f"s6_c{i}"):
-            # Step 7 solo se ricarica a casa
             next_step = 7 if st.session_state.ricarica_a_casa else 8
-            extra = {} if st.session_state.ricarica_a_casa else {"autonomia_utente": "media"}
-            _avanza({"contesto_stradale": c["valore"],
-                     "label_contesto_str": nome, **extra}, next_step)
+            extra     = {} if st.session_state.ricarica_a_casa else {"autonomia_utente": "media"}
+            _avanza({"contesto_stradale": p["valore"],
+                     "label_contesto_str": p["titolo"], **extra}, next_step)
 
 # ─── Step 7 — Autonomia (solo se ricarica_a_casa=True) ─────────────────────────
 
 elif step == 7:
     st.subheader("Fai mai viaggi lunghi senza fermarti a ricaricare?")
-    st.caption("Risponde solo a chi ha la ricarica a casa — influenza il tipo di elettrico consigliato")
-    for i, (nome, a) in enumerate(AUTONOMIA_OPZIONI.items()):
-        label = f"{nome}\n{a['descrizione']}"
+    st.caption("Influenza il tipo di elettrico consigliato")
+    for i, p in enumerate(AUTONOMIA_OPZIONI):
+        num   = f"{i + 1:02d}"
+        label = f"{num}  {p['titolo']}\n{p['descrizione']}"
         if st.button(label, use_container_width=True, key=f"s7_a{i}"):
-            _avanza({"autonomia_utente": a["valore"]}, 8)
+            _avanza({"autonomia_utente": p["valore"]}, 8)
 
 # ─── Step 8 — Ultime info ──────────────────────────────────────────────────────
 
@@ -386,10 +579,10 @@ elif step == 8:
     piva = st.checkbox("Uso per lavoro / Partita IVA", key="chk_piva",
                        value=(st.session_state.contesto == "partita_iva"))
     st.write("")
-    if st.button("🔍 Trova la mia auto", use_container_width=True, type="primary"):
+    if st.button("🔍  Trova la mia auto", use_container_width=True, type="primary"):
         st.session_state.neopatentato = neo
-        st.session_state.contesto = "partita_iva" if piva else "privato"
-        st.session_state.step = "results"
+        st.session_state.contesto     = "partita_iva" if piva else "privato"
+        st.session_state.step         = "results"
         st.rerun()
 
 # ─── Risultati ─────────────────────────────────────────────────────────────────
@@ -417,18 +610,19 @@ elif step == "results":
         autonomia_utente      = st.session_state.get("autonomia_utente", "media"),
     )
 
-    with st.spinner("Calcolo raccomandazioni..."):
+    with st.spinner("Calcolo raccomandazioni…"):
         catalogo  = get_catalogo()
         risultati = raccomanda(profilo, top_n=3, catalogo=catalogo)
 
     if not risultati:
         st.error("Nessuna auto trovata con questi criteri. Prova a ricominciare con un budget più alto.")
     else:
-        st.subheader("Le tue 3 auto consigliate")
-        st.caption(f"📋 {_riepilogo()}")
+        recap = _riepilogo()
+        if recap:
+            st.markdown(f'<div class="g-recap">📋 {recap}</div>', unsafe_allow_html=True)
         st.write("")
 
-        COLORI    = {1: "#1a73e8", 2: "#188038", 3: "#e37400"}
+        COLORI    = {1: "#C45C00", 2: "#1A6B3A", 3: "#2563EB"}
         LABEL_RNK = {1: "Prima scelta", 2: "Seconda scelta", 3: "Terza scelta"}
         ETICHETTE = {
             "electric":        "Elettrica",
@@ -436,67 +630,106 @@ elif step == "results":
             "diesel":          "Diesel",
             "lpg":             "GPL",
             "ng":              "Metano",
-            "petrol/electric": "Ibrida plug-in (PHEV)",
+            "petrol/electric": "Ibrida plug-in",
         }
 
         for r in risultati:
-            auto  = r.auto
-            score = r.score
+            auto     = r.auto
+            score    = r.score
             col      = COLORI.get(r.rank, "#555")
             rank_lbl = LABEL_RNK.get(r.rank, f"#{r.rank}")
             ft_lbl   = ETICHETTE.get(auto.alimentazione, auto.alimentazione.upper())
 
-            stats_html = ""
+            # Stats block
+            stats_parts = []
             if auto.prezzo:
-                stats_html += f'<div class="stat"><div class="val">{auto.prezzo:,.0f} €</div><div class="lbl">Prezzo base</div></div>'
+                stats_parts.append(
+                    f'<div class="g-stat">'
+                    f'<span class="g-stat-val">{auto.prezzo:,.0f} €</span>'
+                    f'<span class="g-stat-lbl">Prezzo base</span></div>')
             if auto.consumo:
                 unita = "kWh/100km" if auto.is_elettrica else "l/100km"
-                asterisco = " *" if auto.consumo_stimato else ""
-                stats_html += f'<div class="stat"><div class="val">{auto.consumo}{asterisco}</div><div class="lbl">Consumo ({unita})</div></div>'
+                ast   = " *" if auto.consumo_stimato else ""
+                stats_parts.append(
+                    f'<div class="g-stat">'
+                    f'<span class="g-stat-val">{auto.consumo}{ast}</span>'
+                    f'<span class="g-stat-lbl">Consumo {unita}</span></div>')
             if auto.bagagliaio:
-                stats_html += f'<div class="stat"><div class="val">{auto.bagagliaio:.0f} L</div><div class="lbl">Bagagliaio</div></div>'
+                stats_parts.append(
+                    f'<div class="g-stat">'
+                    f'<span class="g-stat-val">{auto.bagagliaio:.0f} L</span>'
+                    f'<span class="g-stat-lbl">Bagagliaio</span></div>')
             if auto.lunghezza_mm:
-                stats_html += f'<div class="stat"><div class="val">{auto.lunghezza_mm/1000:.2f} m</div><div class="lbl">Lunghezza</div></div>'
+                stats_parts.append(
+                    f'<div class="g-stat">'
+                    f'<span class="g-stat-val">{auto.lunghezza_mm / 1000:.2f} m</span>'
+                    f'<span class="g-stat-lbl">Lunghezza</span></div>')
+            stats_html = "".join(stats_parts)
 
-            motivi_html = "".join(
-                f'<div class="motivo-pos">✓ {d}</div>' if p > 0 else
-                f'<div class="motivo-neg">✗ {d}</div>'
-                for _, p, d in score.voci if p != 0
+            # Pro / Con items
+            pro_html = "".join(
+                f'<div class="g-pro">✓ {d}</div>'
+                for _, p, d in score.voci if p > 0
+            )
+            con_html = "".join(
+                f'<div class="g-con">✗ {d}</div>'
+                for _, p, d in score.voci if p < 0
             )
 
+            # Dynamic explanations
+            why_txt    = spiega_scelta(auto, profilo, r.rank, score)
+            motori_txt = spiega_motorizzazione(auto.alimentazione, profilo)
+
             avviso = (
-                '<p class="warn">⚠ Prezzo non disponibile: verifica sul sito del costruttore.</p>'
+                '<p class="g-warn">⚠ Prezzo non disponibile: verifica sul sito del costruttore.</p>'
                 if not auto.prezzo else ""
             )
 
             st.markdown(f"""
-<div class="auto-card" style="border-left-color:{col}">
-  <h3>{auto.marca} {auto.modello}</h3>
-  <span class="badge" style="background:{col}">{rank_lbl} · {ft_lbl}</span>
-  <p class="spiegazione">{_spiegazione(auto, profilo)}</p>
-  <div class="stat-row">{stats_html}</div>
+<div class="g-rcard">
+  <span class="g-badge" style="background:{col}">{rank_lbl} · {ft_lbl}</span>
+  <h2>{auto.marca} {auto.modello}</h2>
+  <p class="g-why">{why_txt}</p>
+  <div class="g-stats">{stats_html}</div>
+  <div class="g-motori">{motori_txt}</div>
   {avviso}
   <details>
     <summary>Dettaglio punteggio ({score.totale:.0f} pt)</summary>
-    <div class="motivi">{motivi_html}</div>
+    <div class="g-pro-con">{pro_html}{con_html}</div>
   </details>
 </div>
 """, unsafe_allow_html=True)
 
-        # Nota consumo stimato se almeno una card lo mostra
         if any(r.auto.consumo_stimato for r in risultati):
-            st.caption("\\* Consumo stimato per categoria — verifica sul configuratore ufficiale del costruttore.")
+            st.caption("\\* Consumo stimato per categoria — verifica sul configuratore ufficiale.")
 
+        # Sezione esclusioni
         esclusi = _analizza_esclusi(catalogo, profilo, risultati)
         if esclusi:
-            st.markdown("---")
-            st.subheader("Perché abbiamo escluso le altre")
-            for motivo, count in esclusi:
-                st.markdown(f"- **{count} model{'lo' if count == 1 else 'li'}** — {motivo}")
+            items_html = "".join(
+                '<div class="g-excl-item">· <strong>{} {}</strong> — {}</div>'.format(
+                    v, "modello" if v == 1 else "modelli", m)
+                for m, v in esclusi
+            )
+            st.markdown(f"""
+<div class="g-excl">
+  <h4>Perché abbiamo escluso le altre</h4>
+  {items_html}
+</div>
+""", unsafe_allow_html=True)
 
+    # Restart button
     st.write("")
-    if st.button("↺ Ricomincia", key="restart"):
+    if st.button("↺  Ricomincia dall'inizio", key="restart"):
         _reset()
+
+    # Footer
+    st.markdown("""
+<div class="g-footer">
+  guidami · Database auto 2026 · Prezzi di listino pubblici · Oltre 400 versioni disponibili in Italia<br>
+  I risultati sono indicativi — verifica sempre le specifiche sul sito del costruttore o del concessionario.
+</div>
+""", unsafe_allow_html=True)
 
 # ─── Bottone Indietro (step 2-8) ───────────────────────────────────────────────
 
@@ -504,14 +737,8 @@ if isinstance(step, int) and step > 1:
     st.write("")
     st.write("")
     if st.button("← Indietro", key="back_btn"):
-        # Step 8 torna a 7 se c'è ricarica, a 6 se no (step 7 era saltato)
         if step == 8 and not st.session_state.get("ricarica_a_casa", False):
             st.session_state.step = 6
         else:
             st.session_state.step = step - 1
         st.rerun()
-
-# ─── Footer ────────────────────────────────────────────────────────────────────
-
-st.divider()
-st.caption("Fonte dati: Database auto 2026 · Prezzi di listino pubblici · Oltre 400 versioni disponibili in Italia")
