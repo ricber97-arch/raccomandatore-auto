@@ -4,25 +4,27 @@ Dati EEA reali + prezzi di listino
 """
 
 from __future__ import annotations
-import csv
 import sys
 from pathlib import Path
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
-CSV_PATH = Path(__file__).parent / "auto_top50_con_prezzi.csv"
+import pandas as pd
+
+CSV_PATH = Path(__file__).parent / "database_auto_2026.csv"
 if not CSV_PATH.exists():
-    CSV_PATH = Path.home() / "Downloads" / "auto_top50_con_prezzi.csv"
+    CSV_PATH = Path.home() / "Downloads" / "database_auto_2026.csv"
 
 
 # ─── Strutture dati ────────────────────────────────────────────────────────────
 
 @dataclass
 class ProfiloUtente:
-    km_giorno: float
     mix_citta: float          # frequenza uso urbano  (0.0–1.0, somma con gli altri = 1.0)
     mix_extra: float          # frequenza extraurbano
     mix_auto: float           # frequenza autostrada
+    km_giorno: int            # km medi al giorno
+    autonomia_viaggio: int    # autonomia tipica di un singolo viaggio (km)
     ricarica_a_casa: bool
     budget_acquisto_eur: float
     n_passeggeri_abituali: int   # 1-5
@@ -36,13 +38,13 @@ class Auto:
     modello: str
     alimentazione: str
     prezzo: Optional[float]
-    consumo: Optional[float]      # l/100km
-    co2: Optional[float]          # g/km WLTP
+    consumo: Optional[float]      # l/100km (termici) oppure kWh/100km (elettrici)
     potenza_kw: Optional[float]
-    peso_kg: Optional[float]
-    autonomia_elettrica: Optional[float]  # km
+    peso_kg: Optional[float]      # sempre None nel DB 2026
     bagagliaio: Optional[float]   # litri
-    immatricolazioni: int
+    lunghezza_mm: Optional[float] # proxy dimensione vettura
+    consumo_stimato: bool = False  # True = valore stimato per categoria
+    n_versioni: int = 1           # numero versioni disponibili (tiebreaker)
 
     @property
     def nome(self) -> str:
@@ -50,7 +52,7 @@ class Auto:
 
     @property
     def rapporto_peso_potenza(self) -> Optional[float]:
-        """kW per tonnellata"""
+        """kW per tonnellata — None se peso non disponibile"""
         if self.potenza_kw and self.peso_kg:
             return self.potenza_kw / (self.peso_kg / 1000)
         return None
@@ -77,46 +79,57 @@ class Auto:
 
     @property
     def is_full_hybrid(self) -> bool:
-        """Ibrido full (HEV) classificato come petrol con CO2 < 100 g/km (es. Toyota Yaris)"""
-        return (
-            self.alimentazione == "petrol"
-            and self.co2 is not None
-            and self.co2 < 100
-        )
+        """Nel DB 2026 i full hybrid Toyota sono classificati come petrol/electric.
+        Non ci sono full hybrid mascherati da petrol → restituisce sempre False."""
+        return False
 
     @property
     def is_mild_petrol(self) -> bool:
-        return self.alimentazione == "petrol" and not self.is_full_hybrid
+        return self.alimentazione == "petrol"
 
 
 # ─── Caricamento dati ──────────────────────────────────────────────────────────
 
-def _float(val: str) -> Optional[float]:
-    v = val.strip()
-    return float(v) if v else None
+def _opt(val) -> Optional[float]:
+    """Converte un valore pandas in float opzionale."""
+    if pd.isna(val):
+        return None
+    try:
+        return float(val)
+    except (ValueError, TypeError):
+        return None
 
 
 def carica_auto(path: Path = CSV_PATH) -> list[Auto]:
+    df = pd.read_csv(path)
+    # Rinomina colonne per mapping interno
+    df = df.rename(columns={
+        "marca":            "Mk",
+        "modello":          "Cn",
+        "ft":               "Ft",
+        "prezzo_min":       "prezzo_listino_base_eur",
+        "bagagliaio_l":     "bagagliaio_litri",
+        "consumo_medio":    "consumo_medio_l100km",
+    })
+
     auto_list = []
-    with open(path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                auto_list.append(Auto(
-                    marca=row["Mk"].strip(),
-                    modello=row["Cn"].strip(),
-                    alimentazione=row["Ft"].strip(),
-                    prezzo=_float(row["prezzo_listino_base_eur"]),
-                    consumo=_float(row["consumo_medio_l100km"]),
-                    co2=_float(row["co2_wltp_medio"]),
-                    potenza_kw=_float(row["potenza_media_kw"]),
-                    peso_kg=_float(row["peso_medio_kg"]),
-                    autonomia_elettrica=_float(row["autonomia_elettrica_media_km"]),
-                    bagagliaio=_float(row["bagagliaio_litri"]),
-                    immatricolazioni=int(row["immatricolazioni"] or 0),
-                ))
-            except (ValueError, KeyError):
-                continue
+    for _, row in df.iterrows():
+        try:
+            auto_list.append(Auto(
+                marca           = str(row["Mk"]).strip(),
+                modello         = str(row["Cn"]).strip(),
+                alimentazione   = str(row["Ft"]).strip().lower(),
+                prezzo          = _opt(row["prezzo_listino_base_eur"]),
+                consumo         = _opt(row["consumo_medio_l100km"]),
+                potenza_kw      = _opt(row["potenza_media_kw"]),
+                peso_kg         = _opt(row.get("peso_medio_kg")),
+                bagagliaio      = _opt(row["bagagliaio_litri"]),
+                lunghezza_mm    = _opt(row.get("lunghezza_mm")),
+                consumo_stimato = str(row.get("consumo_stimato", "False")).strip().lower() == "true",
+                n_versioni      = int(row.get("n_versioni", 1) or 1),
+            ))
+        except (ValueError, KeyError, TypeError):
+            continue
     return auto_list
 
 
@@ -160,6 +173,34 @@ def _budget_desc(prezzo: float, budget: float, score: int) -> str:
     if ratio <= 1.0:
         return f"prezzo {prezzo:,.0f}€ ({ratio:.0%} del budget utilizzato)"
     return f"prezzo {prezzo:,.0f}€ — appena sopra budget (+{(ratio - 1):.0%}, tollerato)"
+
+
+# ── Costo carburante / energia ─────────────────────────────────────────────────
+
+PREZZI_CARBURANTE: dict[str, float] = {
+    "petrol":         1.78,
+    "diesel":         1.68,
+    "lpg":            0.85,
+    "ng":             1.10,
+    "petrol/electric": 1.78,   # quota termica per PHEV senza ricarica
+}
+
+
+def stima_costo_mensile(consumo: Optional[float], ft: str, km_giorno: int,
+                         ricarica: bool = False) -> float:
+    """Stima costo mensile carburante/energia in €.
+    Per elettrici e PHEV (con ricarica) usa tariffa €/kWh.
+    """
+    if not consumo or consumo <= 0:
+        return 0.0
+    ft = ft.lower()
+    if ft == "electric":
+        return round(km_giorno * 30 * (consumo / 100) * 0.25, 0)
+    if ft == "petrol/electric" and ricarica:
+        consumo_eff = consumo * 0.4   # uso parzialmente elettrico
+        return round(km_giorno * 30 * (consumo_eff / 100) * PREZZI_CARBURANTE["petrol"], 0)
+    prezzo = PREZZI_CARBURANTE.get(ft, 1.78)
+    return round(km_giorno * 30 * (consumo / 100) * prezzo, 0)
 
 
 # ── Fix 2: peso motorizzazione con mix percorso ────────────────────────────────
@@ -223,17 +264,19 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
     """
     voci: list[tuple[str, float, str]] = []
 
-    km          = profilo.km_giorno
-    ricarica    = profilo.ricarica_a_casa
-    budget      = profilo.budget_acquisto_eur
-    passeggeri  = profilo.n_passeggeri_abituali
-    neopatentato= profilo.neopatentato
-    contesto    = profilo.contesto
-    mix_c       = profilo.mix_citta
-    mix_e       = profilo.mix_extra
-    mix_a       = profilo.mix_auto
+    km           = profilo.km_giorno
+    ricarica     = profilo.ricarica_a_casa
+    budget       = profilo.budget_acquisto_eur
+    passeggeri   = profilo.n_passeggeri_abituali
+    neopatentato = profilo.neopatentato
+    contesto     = profilo.contesto
+    mix_c        = profilo.mix_citta
+    mix_e        = profilo.mix_extra
+    mix_a        = profilo.mix_auto
 
     # ── Vincolo neopatentato (Italia: max 55 kW/t per i primi 3 anni) ──────────
+    # peso_kg non disponibile nel DB 2026 → rapporto_peso_potenza sempre None,
+    # il vincolo non esclude nessuno; mantenuto per futura compatibilità.
     if neopatentato and auto.rapporto_peso_potenza is not None:
         if auto.rapporto_peso_potenza > 55:
             return None
@@ -243,68 +286,59 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
         if mix_a > 0.40 or km > 80:
             return None
 
-    # ── 1. Budget (Fix 1) ──────────────────────────────────────────────────────
+    # ── 1. Budget ──────────────────────────────────────────────────────────────
     if auto.prezzo is not None:
         bs = budget_score(auto.prezzo, budget)
         voci.append(("budget", bs, _budget_desc(auto.prezzo, budget, bs)))
     else:
         voci.append(("budget", 3, "prezzo non disponibile (verifica concessionario)"))
 
-    # ── 2. Alimentazione vs mix percorso (Fix 2) ───────────────────────────────
-    ft_key = "full_hybrid" if auto.is_full_hybrid else auto.alimentazione
-    alim_score = peso_motorizzazione(ft_key, mix_c, mix_e, mix_a, ricarica)
-    voci.append(("alimentazione", alim_score, _alim_desc(ft_key, alim_score, ricarica)))
+    # ── 2. Alimentazione vs mix percorso ───────────────────────────────────────
+    # is_full_hybrid sempre False nel DB 2026 (HEV Toyota → petrol/electric)
+    alim_score = peso_motorizzazione(auto.alimentazione, mix_c, mix_e, mix_a, ricarica)
+    voci.append(("alimentazione", alim_score,
+                 _alim_desc(auto.alimentazione, alim_score, ricarica)))
 
-    # Bonus autonomia elettrica (EV e PHEV)
-    if auto.is_elettrica and auto.autonomia_elettrica and auto.autonomia_elettrica > 0:
-        margine = auto.autonomia_elettrica - km
-        if margine >= km * 0.5:
-            voci.append(("autonomia", 8,
-                f"autonomia {auto.autonomia_elettrica:.0f} km, ampio margine sui {km:.0f} km/giorno"))
-        elif margine >= 0:
-            voci.append(("autonomia", 3,
-                f"autonomia {auto.autonomia_elettrica:.0f} km, sufficiente per {km:.0f} km/giorno"))
+    # ── 3. Efficienza consumo ──────────────────────────────────────────────────
+    if auto.consumo and auto.consumo > 0:
+        if auto.is_elettrica:
+            # consumo in kWh/100km
+            costo_mensile = stima_costo_mensile(auto.consumo, auto.alimentazione, km, ricarica)
+            voci.append(("efficienza", 12,
+                f"consumo {auto.consumo:.1f} kWh/100km — ~{costo_mensile:.0f}€/mese energia"))
         else:
-            voci.append(("autonomia", -12,
-                f"autonomia {auto.autonomia_elettrica:.0f} km insufficiente per {km:.0f} km/giorno"))
+            costo_mensile = stima_costo_mensile(auto.consumo, auto.alimentazione, km, ricarica)
+            unita = "l/100km"
+            if auto.consumo < 4.5:
+                voci.append(("efficienza", 8,
+                    f"consumo contenuto {auto.consumo} {unita} (~{costo_mensile:.0f}€/mese)"))
+            elif auto.consumo < 5.5:
+                voci.append(("efficienza", 4,
+                    f"consumo {auto.consumo} {unita} (~{costo_mensile:.0f}€/mese)"))
+            # consumo >= 5.5: nessun bonus (già gestito da alim_score)
 
-    if auto.is_phev and auto.autonomia_elettrica:
-        voci.append(("autonomia", 5,
-            f"autonomia elettrica {auto.autonomia_elettrica:.0f} km (tratti urbani in zero emissioni)"))
-
-    # ── 3. Efficienza consumo (Fix 3 — bonus ridotti, basati su l/100km) ───────
-    if auto.consumo and auto.consumo > 0 and not auto.is_elettrica:
-        prezzo_carb = {"petrol": 1.75, "diesel": 1.65, "lpg": 0.80, "ng": 1.10}.get(
-            auto.alimentazione, 1.75
-        )
-        consumo_eff = auto.consumo * 0.4 if auto.is_phev else auto.consumo
-        costo_annuo = (km * 365 / 100) * consumo_eff * prezzo_carb
-
-        if auto.consumo < 4.5:
-            voci.append(("efficienza", 8,
-                f"consumo molto contenuto {auto.consumo} l/100km (~{costo_annuo:.0f}€/anno)"))
-        elif auto.consumo < 5.5:
-            voci.append(("efficienza", 4,
-                f"consumo nella media {auto.consumo} l/100km (~{costo_annuo:.0f}€/anno)"))
-        # consumo >= 5.5: nessun bonus (non penalizza, è già gestito da alim_score)
-
-    elif auto.is_elettrica:
-        costo_annuo_el = (km * 365 / 100) * 18 * 0.25
-        voci.append(("efficienza", 12,
-            f"costo energia stimato ~{costo_annuo_el:.0f}€/anno (elettricità)"))
-
-    # ── 4. Spazio / passeggeri ────────────────────────────────────────────────
+    # ── 4. Spazio / passeggeri (proxy: lunghezza_mm e bagagliaio) ────────────
     if passeggeri >= 4:
-        if auto.peso_kg and auto.peso_kg < 1100:
-            voci.append(("spazio", -8, "auto piccola/leggera: spazio ridotto per 4+ passeggeri"))
-        elif auto.peso_kg and auto.peso_kg > 1400:
-            voci.append(("spazio", 8, "auto spaziosa: adatta a 4-5 passeggeri"))
-        else:
-            voci.append(("spazio", 3, "spazio nella media per il numero di passeggeri"))
-        if auto.bagagliaio and auto.bagagliaio >= 400:
-            voci.append(("spazio", 5, f"bagagliaio {auto.bagagliaio:.0f}L: capiente per famiglie"))
-        elif auto.bagagliaio and auto.bagagliaio < 280:
-            voci.append(("spazio", -4, f"bagagliaio {auto.bagagliaio:.0f}L: ridotto per 4+ persone"))
+        # Lunghezza: proxy dimensione abitacolo
+        if auto.lunghezza_mm:
+            if auto.lunghezza_mm < 3800:
+                voci.append(("spazio", -20, "auto molto compatta: spazio insufficiente per 4+ passeggeri"))
+            elif auto.lunghezza_mm < 4000:
+                voci.append(("spazio", -12, "auto compatta: spazio limitato per 4+ passeggeri"))
+            elif auto.lunghezza_mm > 4400:
+                voci.append(("spazio", 10, "auto spaziosa: ideale per 4-5 passeggeri"))
+            else:
+                voci.append(("spazio", 3, "dimensioni adeguate per 4+ passeggeri"))
+        # Bagagliaio
+        if auto.bagagliaio:
+            if auto.bagagliaio < 200:
+                voci.append(("spazio", -15, f"bagagliaio {auto.bagagliaio:.0f}L: insufficiente per 4+ persone"))
+            elif auto.bagagliaio < 280:
+                voci.append(("spazio", -10, f"bagagliaio {auto.bagagliaio:.0f}L: ridotto per 4+ persone"))
+            elif auto.bagagliaio >= 400:
+                voci.append(("spazio", 7, f"bagagliaio {auto.bagagliaio:.0f}L: capiente per famiglie"))
+            elif auto.bagagliaio >= 350:
+                voci.append(("spazio", 3, f"bagagliaio {auto.bagagliaio:.0f}L: adeguato per famiglie"))
     else:
         if auto.bagagliaio and auto.bagagliaio >= 300:
             voci.append(("spazio", 3, f"bagagliaio {auto.bagagliaio:.0f}L: ampio"))
@@ -314,33 +348,19 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
         if auto.is_elettrica:
             voci.append(("fiscale", 10, "P.IVA: elettrica deducibile al 100% (uso aziendale esclusivo)"))
         elif auto.is_phev:
-            voci.append(("fiscale", 8, "P.IVA: PHEV con CO2 bassa, deducibilità migliorata"))
+            voci.append(("fiscale", 8, "P.IVA: ibrido plug-in con basse emissioni, deducibilità migliorata"))
         elif auto.is_diesel:
             voci.append(("fiscale", 6, "P.IVA: diesel deducibile al 20% + IVA parzialmente recuperabile"))
-        elif auto.is_full_hybrid:
-            voci.append(("fiscale", 5, "P.IVA: ibrido con CO2 bassa, buona deducibilità"))
         else:
             voci.append(("fiscale", 2, "P.IVA: deducibilità standard 20% (regime ordinario)"))
 
-    # ── 6. Popolarità / proxy affidabilità ───────────────────────────────────
-    if auto.immatricolazioni > 20000:
-        voci.append(("popolarità", 5,
-            f"tra le auto più vendute in Italia ({auto.immatricolazioni:,} immatr. 2024)"))
-    elif auto.immatricolazioni > 10000:
-        voci.append(("popolarità", 3,
-            f"buona diffusione in Italia ({auto.immatricolazioni:,} immatr. 2024)"))
-    else:
-        voci.append(("popolarità", 1,
-            f"meno comune ({auto.immatricolazioni:,} immatr. 2024)"))
-
-    # ── 7. Emissioni CO2 ──────────────────────────────────────────────────────
-    if auto.co2 is not None:
-        if auto.co2 == 0:
-            voci.append(("emissioni", 5, "zero emissioni CO2 allo scarico"))
-        elif auto.co2 < 100:
-            voci.append(("emissioni", 3, f"emissioni contenute: {auto.co2:.0f} g/km CO2"))
-        elif auto.co2 > 150:
-            voci.append(("emissioni", -3, f"emissioni elevate: {auto.co2:.0f} g/km CO2"))
+    # ── 6. Varietà di scelta (n_versioni come proxy disponibilità/affidabilità) ─
+    if auto.n_versioni >= 5:
+        voci.append(("disponibilità", 4,
+            f"ampia scelta: {auto.n_versioni} versioni disponibili"))
+    elif auto.n_versioni >= 3:
+        voci.append(("disponibilità", 2,
+            f"{auto.n_versioni} versioni disponibili"))
 
     totale = sum(p for _, p, _ in voci)
     return DettaglioScore(totale=totale, voci=voci)
@@ -369,7 +389,7 @@ def raccomanda(
         if det is not None:
             risultati.append((auto, det))
 
-    risultati.sort(key=lambda x: (x[1].totale, x[0].immatricolazioni), reverse=True)
+    risultati.sort(key=lambda x: (x[1].totale, x[0].n_versioni), reverse=True)
     return [
         Raccomandazione(auto=a, score=s, rank=i + 1)
         for i, (a, s) in enumerate(risultati[:top_n])
@@ -400,10 +420,11 @@ def stampa_raccomandazioni(raccomandazioni: list[Raccomandazione], titolo: str =
         else:
             print(f"  ⚠  Prezzo non nel dataset: verifica sul sito del costruttore.")
         if auto.consumo:
-            co2_str = f"  |  CO₂: {auto.co2:.0f} g/km" if auto.co2 else ""
-            print(f"  Consumo:      {auto.consumo} l/100km{co2_str}")
-        if auto.autonomia_elettrica:
-            print(f"  Autonomia EV: {auto.autonomia_elettrica:.0f} km")
+            unita = "kWh/100km" if auto.is_elettrica else "l/100km"
+            stim = " *" if auto.consumo_stimato else ""
+            print(f"  Consumo:      {auto.consumo} {unita}{stim}")
+        if auto.bagagliaio:
+            print(f"  Bagagliaio:   {auto.bagagliaio:.0f} L")
 
         print(f"\n  Perché questa auto:")
         for cat, punti, desc in score.voci:
@@ -430,10 +451,22 @@ def test_profili():
 
     profili = [
         (
-            "Budget medio / mix equilibrato / no ricarica — atteso €30-40k, no citycar",
+            "Città / ricarica / budget 30k — atteso elettrici o ibridi, no diesel",
             ProfiloUtente(
-                km_giorno=60,
-                mix_citta=0.30, mix_extra=0.40, mix_auto=0.30,
+                mix_citta=0.80, mix_extra=0.15, mix_auto=0.05,
+                km_giorno=22, autonomia_viaggio=40,
+                ricarica_a_casa=True,
+                budget_acquisto_eur=30_000,
+                n_passeggeri_abituali=2,
+                neopatentato=False,
+                contesto="privato",
+            ),
+        ),
+        (
+            "Autostrada / no ricarica / budget 40k — atteso diesel fascia €30-40k",
+            ProfiloUtente(
+                mix_citta=0.15, mix_extra=0.25, mix_auto=0.60,
+                km_giorno=95, autonomia_viaggio=280,
                 ricarica_a_casa=False,
                 budget_acquisto_eur=40_000,
                 n_passeggeri_abituali=2,
@@ -442,25 +475,13 @@ def test_profili():
             ),
         ),
         (
-            "Budget basso / city / no ricarica — atteso Sandero/Panda",
+            "Mix / no ricarica / budget 18k / 4 passeggeri — atteso bagagliaio >350L, no citycar",
             ProfiloUtente(
-                km_giorno=20,
-                mix_citta=0.80, mix_extra=0.10, mix_auto=0.10,
+                mix_citta=0.40, mix_extra=0.35, mix_auto=0.25,
+                km_giorno=50, autonomia_viaggio=150,
                 ricarica_a_casa=False,
-                budget_acquisto_eur=15_000,
-                n_passeggeri_abituali=1,
-                neopatentato=False,
-                contesto="privato",
-            ),
-        ),
-        (
-            "Alta percorrenza autostradale / no ricarica — atteso diesel medio-alta fascia",
-            ProfiloUtente(
-                km_giorno=120,
-                mix_citta=0.10, mix_extra=0.20, mix_auto=0.70,
-                ricarica_a_casa=False,
-                budget_acquisto_eur=35_000,
-                n_passeggeri_abituali=2,
+                budget_acquisto_eur=18_000,
+                n_passeggeri_abituali=4,
                 neopatentato=False,
                 contesto="privato",
             ),
@@ -500,13 +521,14 @@ def _chiedi_bool(domanda: str) -> bool:
 
 def cli():
     print("\n" + "═" * 60)
-    print("  Raccomandatore auto — Top 50 Italia 2024")
+    print("  Raccomandatore auto — Database 2026")
     print("═" * 60)
     print("  Rispondi alle domande per trovare l'auto più adatta a te.\n")
 
-    km = _chiedi_float("  Quanti km percorri in media al giorno? ", 1, 2000)
+    km = int(_chiedi_float("  Quanti km percorri in media al giorno? ", 1, 2000))
     percorso = _chiedi_scelta("  Tipo di percorso prevalente?", ["città", "misto", "autostrada"])
     mix_c, mix_e, mix_a = _PERCORSO_TO_MIX[percorso]
+    autonomia = {"città": 40, "misto": 150, "autostrada": 280}[percorso]
     ricarica = _chiedi_bool("  Hai la possibilità di ricaricare a casa?")
     budget = _chiedi_float("  Qual è il tuo budget di acquisto (€)? ", 5_000, 500_000)
     passeggeri = int(_chiedi_float("  Quanti passeggeri trasporti abitualmente (incluso te)? ", 1, 5))
@@ -514,10 +536,11 @@ def cli():
     contesto = _chiedi_scelta("  Acquisto per uso?", ["privato", "partita_iva"])
 
     profilo = ProfiloUtente(
-        km_giorno=km,
         mix_citta=mix_c,
         mix_extra=mix_e,
         mix_auto=mix_a,
+        km_giorno=km,
+        autonomia_viaggio=autonomia,
         ricarica_a_casa=ricarica,
         budget_acquisto_eur=budget,
         n_passeggeri_abituali=passeggeri,

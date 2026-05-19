@@ -223,7 +223,7 @@ def _analizza_esclusi(catalogo, profilo: ProfiloUtente, top_risultati) -> list:
 # ─── Layout ────────────────────────────────────────────────────────────────────
 
 st.title("🚗 Trova la tua auto")
-st.caption("Top 50 auto più vendute in Italia nel 2024 — dati EEA reali")
+st.caption("Database auto 2026 — oltre 400 versioni, prezzi di listino aggiornati")
 
 step = st.session_state.step
 
@@ -312,17 +312,18 @@ elif step == 5:
 # ─── Risultati ─────────────────────────────────────────────────────────────────
 
 elif step == "results":
-    _required = ["km_giorno", "mix_citta", "mix_extra", "mix_auto",
+    _required = ["km_giorno", "autonomia_viaggio", "mix_citta", "mix_extra", "mix_auto",
                  "ricarica_a_casa", "budget", "n_passeggeri"]
     if any(st.session_state.get(k) is None for k in _required):
         st.session_state.step = 1
         st.rerun()
 
     profilo = ProfiloUtente(
-        km_giorno             = st.session_state.km_giorno,
         mix_citta             = st.session_state.mix_citta,
         mix_extra             = st.session_state.mix_extra,
         mix_auto              = st.session_state.mix_auto,
+        km_giorno             = int(st.session_state.km_giorno),
+        autonomia_viaggio     = int(st.session_state.autonomia_viaggio),
         ricarica_a_casa       = st.session_state.ricarica_a_casa,
         budget_acquisto_eur   = st.session_state.budget,
         n_passeggeri_abituali = st.session_state.n_passeggeri,
@@ -363,14 +364,13 @@ elif step == "results":
             if auto.prezzo:
                 stats_html += f'<div class="stat"><div class="val">{auto.prezzo:,.0f} €</div><div class="lbl">Prezzo base</div></div>'
             if auto.consumo:
-                stats_html += f'<div class="stat"><div class="val">{auto.consumo} l/100km</div><div class="lbl">Consumo WLTP</div></div>'
-            if auto.co2 is not None:
-                co2_val = f"{auto.co2:.0f} g/km" if auto.co2 > 0 else "0 g/km"
-                stats_html += f'<div class="stat"><div class="val">{co2_val}</div><div class="lbl">CO₂ WLTP</div></div>'
-            if auto.autonomia_elettrica:
-                stats_html += f'<div class="stat"><div class="val">{auto.autonomia_elettrica:.0f} km</div><div class="lbl">Autonomia EV</div></div>'
+                unita = "kWh/100km" if auto.is_elettrica else "l/100km"
+                asterisco = " *" if auto.consumo_stimato else ""
+                stats_html += f'<div class="stat"><div class="val">{auto.consumo}{asterisco}</div><div class="lbl">Consumo ({unita})</div></div>'
             if auto.bagagliaio:
                 stats_html += f'<div class="stat"><div class="val">{auto.bagagliaio:.0f} L</div><div class="lbl">Bagagliaio</div></div>'
+            if auto.lunghezza_mm:
+                stats_html += f'<div class="stat"><div class="val">{auto.lunghezza_mm/1000:.2f} m</div><div class="lbl">Lunghezza</div></div>'
 
             motivi_html = "".join(
                 f'<div class="motivo-pos">✓ {d}</div>' if p > 0 else
@@ -397,6 +397,10 @@ elif step == "results":
 </div>
 """, unsafe_allow_html=True)
 
+        # Nota consumo stimato se almeno una card lo mostra
+        if any(r.auto.consumo_stimato for r in risultati):
+            st.caption("\\* Consumo stimato per categoria — verifica sul configuratore ufficiale del costruttore.")
+
         esclusi = _analizza_esclusi(catalogo, profilo, risultati)
         if esclusi:
             st.markdown("---")
@@ -420,4 +424,4 @@ if isinstance(step, int) and step > 1:
 # ─── Footer ────────────────────────────────────────────────────────────────────
 
 st.divider()
-st.caption("Fonte dati: EEA Vehicle CO₂ monitoring 2024 · Prezzi di listino pubblici · Top 50 immatricolazioni Italia 2024")
+st.caption("Fonte dati: Database auto 2026 · Prezzi di listino pubblici · Oltre 400 versioni disponibili in Italia")

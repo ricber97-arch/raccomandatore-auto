@@ -1,0 +1,401 @@
+marca,modello,ft,prezzo_min,prezzo_medio,potenza_media_kw,bagagliaio_l,consumo_medio,peso_medio_kg,lunghezza_mm,n_versioni,consumo_stimato
+ABARTH,500e,electric,34400,38150.0,47.0,185.0,15.0,,3673.0,4,True
+ABARTH,600e,electric,42250,44250.0,105.0,360.0,18.0,,4187.0,2,True
+ALFA ROMEO,Giulia,diesel,52750,58000.0,136.0,480.0,6.5,,4646.5,4,True
+ALFA ROMEO,Giulia,petrol,59700,67700.0,206.0,480.0,6.9,,4650.0,4,False
+ALFA ROMEO,Junior,electric,39800,42500.0,62.0,400.0,15.0,,4173.0,5,True
+ALFA ROMEO,Junior,petrol/electric,31050,35250.0,107.0,415.0,5.5,,4173.0,7,True
+ALFA ROMEO,Stelvio,diesel,57850,63100.0,136.0,525.0,5.4,,4687.0,4,False
+ALFA ROMEO,Stelvio,petrol,111500,111500.0,382.0,525.0,9.8,,4702.0,1,False
+ALFA ROMEO,Tonale,diesel,40250,43125.0,96.0,500.0,5.2,,4522.0,6,True
+ALFA ROMEO,Tonale,petrol/electric,42050,50300.0,163.0,442.5,6.5,,4522.0,12,True
+ALPINE,A110,petrol,68200,125200.0,221.0,196.0,6.0,,4181.0,6,False
+ALPINE,A290,electric,39000,42200.0,78.0,313.0,18.0,,3997.0,4,True
+ALPINE,A390,electric,67500,67500.0,98.0,532.0,18.0,,4615.0,1,True
+ASTON MARTIN,DB12,petrol,249899,266302.0,507.5,234.0,9.9,,4725.0,4,False
+ASTON MARTIN,DBX,petrol,274504,284498.5,520.0,638.0,11.8,,5040.0,4,False
+ASTON MARTIN,Vahlalla,petrol/electric,1014705,1014705.0,783.0,,6.5,,4842.0,1,True
+ASTON MARTIN,Vanquish,petrol,405731,421621.5,614.0,,8.5,,4855.0,2,True
+ASTON MARTIN,Vantage,petrol,212991,215554.0,494.5,346.0,8.5,,4495.0,2,True
+ASTON MARTIN,Vantage Roadster,petrol,224268,226831.0,494.5,346.0,8.5,,4495.0,2,True
+AUDI,A1,petrol,27800,32050.0,85.0,335.0,5.0,,4035.0,15,False
+AUDI,A3 4p,diesel,33400,39900.0,85.0,425.0,3.6,,4505.0,7,False
+AUDI,A3 4p,petrol,32250,49100.0,150.0,425.0,5.0,,4505.0,9,False
+AUDI,A3 4p,petrol/electric,34450,39450.0,85.0,425.0,5.0,,4505.0,7,False
+AUDI,A3 5p,diesel,32100,40350.0,110.0,380.0,3.9,,4352.0,10,False
+AUDI,A3 5p,petrol,30950,50300.0,150.0,325.0,6.0,,4353.0,12,False
+AUDI,A3 5p,petrol/electric,33150,42550.0,110.0,380.0,5.0,,4352.0,17,False
+AUDI,Audi A5,petrol,48550,57900.0,150.0,445.0,6.0,,4832.0,9,False
+AUDI,Audi A5,petrol/electric,56050,67400.0,220.0,417.0,4.9,,4832.0,14,False
+AUDI,Q2,diesel,33650,41400.0,110.0,405.0,4.7,,4212.0,12,False
+AUDI,Q2,petrol,32500,38450.0,110.0,405.0,5.4,,4212.0,15,False
+AUDI,Q3,diesel,45500,52200.0,126.0,488.0,5.2,,4531.0,12,True
+AUDI,Q3,petrol,51000,55700.0,150.0,488.0,8.5,,4531.0,8,True
+AUDI,Q3,petrol/electric,44200,51500.0,155.0,431.5,6.5,,4531.0,12,True
+AUDI,Q4 e-tron,electric,42690,61800.0,77.0,520.0,18.0,,4588.0,13,True
+BENTLEY,Bentayga,petrol,222574,278038.0,404.0,484.0,12.0,,5215.0,8,False
+BENTLEY,Bentayga,petrol/electric,222574,255124.5,340.0,484.0,3.6,,5125.0,4,False
+BENTLEY,Continental GT,petrol/electric,304591,331913.0,575.0,197.0,6.5,,4895.0,4,True
+BENTLEY,Flying Spur,petrol/electric,287778,299106.5,575.0,346.0,6.5,,5316.0,2,True
+BMW,Serie 1,diesel,39900,42470.0,110.0,380.0,5.2,,4361.0,4,True
+BMW,Serie 1,petrol,35400,39960.0,90.0,380.0,6.5,,4361.0,8,True
+BMW,Serie 1,petrol/electric,37200,43730.0,115.0,300.0,5.5,,4361.0,13,True
+BMW,Serie 2 Active Tourer,diesel,41300,43850.0,110.0,470.0,4.0,,4386.0,3,False
+BMW,Serie 2 Active Tourer,petrol,37100,40050.0,95.0,470.0,5.3,,4386.0,6,False
+BMW,Serie 2 Active Tourer,petrol/electric,39900,47900.0,150.0,415.0,5.0,,4386.0,22,False
+BMW,Serie 2 Coup&eacute;,petrol,46200,53625.0,157.5,390.0,6.0,,4537.0,8,False
+BMW,Serie 2 Coup&eacute;,petrol/electric,54200,60425.0,214.0,390.0,5.8,,4542.5,4,False
+BMW,Serie 2 Gran Coup&eacute;,diesel,43500,46070.0,110.0,430.0,4.0,,4546.0,4,False
+BMW,Serie 2 Gran Coup&eacute;,petrol,39000,44330.0,90.0,360.0,5.3,,4546.0,7,False
+BMW,Serie 2 Gran Coup&eacute;,petrol/electric,42000,48060.0,115.0,360.0,4.6,,4546.0,12,False
+BMW,X1,diesel,45200,48725.0,110.0,476.0,5.2,,4500.0,4,True
+BMW,X1,petrol,42500,48600.0,100.0,476.0,6.5,,4500.0,6,True
+BMW,X1,petrol/electric,45200,53950.0,145.0,500.0,6.5,,4500.0,29,True
+BMW,X2,diesel,46800,51050.0,110.0,495.0,4.3,,4554.0,3,False
+BMW,X2,petrol,65300,67200.0,221.0,560.0,8.5,,4567.0,2,True
+BMW,X2,petrol/electric,46800,53050.0,110.0,495.0,5.5,,4554.0,9,True
+BMW,iX1,electric,43000,55850.0,68.0,490.0,15.0,,4500.0,9,True
+BMW,iX2,electric,45100,57550.0,68.0,525.0,15.0,,4554.0,7,True
+BYD,Atto 2,electric,30290,32290.0,65.0,400.0,15.0,,4310.0,3,True
+BYD,Atto 2 DM-i,petrol/electric,27600,28850.0,139.0,425.0,6.5,,4330.0,2,True
+BYD,Atto 3,electric,43800,45300.0,87.5,490.0,18.0,,4455.0,2,True
+BYD,Dolphin,electric,35090,36090.0,65.0,364.0,15.0,,4290.0,2,True
+BYD,Dolphin Surf,electric,19790,23290.0,35.0,308.0,15.0,,3990.0,3,True
+BYD,Seal 6 DM-i,petrol/electric,39700,44400.0,156.0,500.0,0.9,,4840.0,3,False
+BYD,Seal DM-i,petrol/electric,38200,42900.0,156.0,491.0,0.9,,4840.0,3,False
+BYD,Seal U DM-i,petrol/electric,39800,42300.0,160.0,425.0,0.9,,4775.0,3,False
+CITROEN,Berlingo,diesel,26230,27455.0,75.0,775.0,4.1,,4403.0,2,False
+CITROEN,C3,petrol,16700,19300.0,74.0,310.0,5.5,,4015.0,5,True
+CITROEN,C3,petrol/electric,21750,22425.0,81.0,310.0,5.5,,4015.0,4,True
+CITROEN,C3 Aicross,electric,26790,31090.0,53.0,460.0,15.0,,4395.0,8,True
+CITROEN,C3 Aicross,petrol,20200,23250.0,74.0,460.0,5.5,,4395.0,4,True
+CITROEN,C3 Aicross,petrol/electric,26750,27550.0,107.0,460.0,5.5,,4395.0,4,True
+CITROEN,C4,petrol,27900,28900.0,96.0,380.0,4.8,,4350.0,2,False
+CITROEN,C4,petrol/electric,26550,30550.0,107.0,380.0,5.5,,4350.0,5,True
+CITROEN,C4 X,petrol,29400,30400.0,96.0,510.0,6.5,,4580.0,2,True
+CITROEN,C4 X,petrol/electric,29850,31800.0,107.0,510.0,5.5,,4580.0,4,True
+CITROEN,C5 Aircross,electric,37690,40690.0,104.0,565.0,18.0,,4650.0,3,True
+CITROEN,C5 Aircross,petrol/electric,33990,42990.0,143.0,565.0,1.6,,4650.0,7,False
+CITROEN,E-C3,electric,20490,25150.0,53.0,310.0,15.0,,4015.0,6,True
+CITROEN,E-C4 X,electric,35150,36550.0,59.5,510.0,15.0,,4580.0,4,True
+CUPRA,Born,electric,40100,41750.0,70.0,385.0,15.0,,4324.0,5,True
+CUPRA,Formentor,diesel,41750,43050.0,110.0,450.0,5.2,,4451.0,3,True
+CUPRA,Formentor,petrol,37200,52100.0,195.0,420.0,7.7,,4451.0,13,False
+CUPRA,Formentor,petrol/electric,40850,48000.0,150.0,345.0,1.6,,4451.0,9,False
+CUPRA,Leon berlina,diesel,38150,39100.0,110.0,380.0,5.2,,4398.0,3,True
+CUPRA,Leon berlina,petrol,33450,42225.0,165.5,380.0,4.9,,4398.0,6,False
+CUPRA,Leon berlina,petrol/electric,37200,44450.0,150.0,270.0,6.5,,4399.0,9,True
+CUPRA,Leon station,diesel,38900,40000.0,110.0,620.0,5.2,,4656.0,3,True
+CUPRA,Leon station,petrol,34600,43050.0,150.0,620.0,6.3,,4656.0,9,False
+CUPRA,Leon station,petrol/electric,38400,45950.0,150.0,470.0,6.5,,4656.0,9,True
+CUPRA,Raval,electric,35950,39950.0,70.0,441.0,15.0,,4046.0,3,True
+CUPRA,Tavascan,electric,52800,59550.0,89.0,540.0,18.0,,4644.0,5,True
+CUPRA,Terramar,petrol,47550,49650.0,150.0,540.0,8.5,,4519.0,6,True
+CUPRA,Terramar,petrol/electric,43650,49100.0,150.0,400.0,6.5,,4519.0,9,True
+DACIA,Bigster,petrol/electric,24800,27800.0,103.0,609.0,5.5,,4570.0,17,True
+DACIA,Duster,lpg,19900,23350.0,90.0,517.0,8.5,,4343.0,11,True
+DACIA,Duster,petrol/electric,23150,28150.0,104.0,517.0,5.5,,4343.0,14,True
+DACIA,Jogger,lpg,18100,21500.0,90.0,708.0,6.0,,4547.0,17,False
+DACIA,Jogger,petrol,20700,21975.0,81.0,434.0,6.0,,4547.0,4,False
+DACIA,Jogger,petrol/electric,25150,26850.0,115.0,160.0,4.6,,4547.0,11,False
+DACIA,Sandero,lpg,16500,18200.0,90.0,410.0,8.5,,4099.0,9,True
+DACIA,Sandero,petrol,14800,17250.0,74.0,410.0,6.3,,4088.0,6,False
+DACIA,Spring,electric,17900,19450.0,19.0,343.0,15.0,,3701.0,8,True
+DS,DS 3,electric,42080,42780.0,62.0,350.0,15.0,,4118.0,5,True
+DS,DS 3,petrol/electric,34350,35250.0,107.0,350.0,5.5,,4118.0,5,True
+DS,DS 4,diesel,38350,39550.0,96.0,430.0,4.0,,4400.0,5,False
+DS,DS 4,petrol/electric,37650,45675.0,136.0,430.0,1.6,,4400.0,10,False
+DS,DS 7,diesel,45900,46900.0,96.0,555.0,4.0,,4593.0,5,False
+DS,DS N&deg;4,diesel,40200,41900.0,96.0,430.0,4.0,,4400.0,6,False
+DS,DS N&deg;4,electric,43550,44950.0,104.0,390.0,18.0,,4400.0,10,True
+DS,DS N&deg;4,petrol/electric,39000,48050.0,165.0,360.0,1.6,,4400.0,18,False
+DS,DS N&deg;8,electric,59150,71490.0,105.0,620.0,18.0,,4835.0,7,True
+FERRARI,12Cilindri,petrol,395000,415000.0,607.0,235.0,8.5,,4733.0,2,True
+FERRARI,296 GTB,petrol/electric,275500,341250.0,629.0,169.0,6.5,,4595.0,2,True
+FERRARI,296 GTS,petrol/electric,320000,391000.0,629.0,169.0,6.5,,4595.0,2,True
+FERRARI,Amalfi,petrol,240000,240000.0,471.0,273.0,10.7,,4660.0,1,False
+FERRARI,Purosangue,petrol,390000,390000.0,529.0,473.0,8.5,,4973.0,1,True
+FERRARI,Roma,petrol,219071,234535.5,456.0,263.5,10.7,,4656.0,2,False
+FIAT,500,electric,23900,28400.0,43.0,185.0,15.0,,3631.0,10,True
+FIAT,500,petrol/electric,19900,22150.0,48.0,183.0,4.8,,3631.0,6,True
+FIAT,500 2015,petrol/electric,17700,18950.0,51.0,185.0,3.9,,3571.0,2,False
+FIAT,500 cabrio 2015,petrol/electric,20200,22700.0,51.0,185.0,3.9,,3571.0,3,False
+FIAT,Grande Panda,electric,23900,25150.0,53.0,361.0,15.0,,3999.0,4,True
+FIAT,Grande Panda,petrol,17900,20025.0,74.0,412.0,5.1,,3999.0,4,False
+FIAT,Grande Panda,petrol/electric,19900,22025.0,81.0,412.0,5.1,,3999.0,4,False
+FIAT,Panda,petrol/electric,15950,16800.0,52.0,225.0,3.9,,3686.0,3,False
+FIAT,Panda Cross,petrol/electric,18600,18600.0,51.0,225.0,3.9,,3705.0,1,False
+FIAT,Pandina,petrol/electric,15950,16900.0,48.0,225.0,4.8,,3686.0,3,True
+FIAT,Tipo 4p,diesel,18200,19125.0,96.0,520.0,4.6,,4532.0,2,False
+FORD,E-Tourneo Courier,electric,35000,35625.0,52.0,,15.0,,4343.0,2,True
+FORD,Focus berlina,diesel,33850,35000.0,85.0,375.0,4.3,,4397.0,5,False
+FORD,Focus berlina,petrol/electric,30600,31750.0,92.0,375.0,4.3,,4397.0,5,False
+FORD,Focus station,diesel,34850,36000.0,85.0,608.0,3.8,,4693.0,5,False
+FORD,Focus station,petrol/electric,31600,32750.0,92.0,608.0,4.1,,4693.0,5,False
+FORD,Kuga,petrol,36000,41000.0,111.0,435.0,5.5,,4745.0,7,False
+FORD,Kuga,petrol/electric,38750,46000.0,134.0,405.0,4.4,,4745.0,17,False
+FORD,Puma,petrol/electric,28250,32225.0,92.0,456.0,5.5,,4225.0,10,True
+FORD,Puma Gen-E,electric,33250,36475.0,52.0,574.0,15.0,,4225.0,4,True
+FORD,Tourneo Connect,diesel,33250,39250.0,90.0,1213.0,5.1,,4676.5,8,False
+FORD,Tourneo Connect,petrol,31750,34125.0,85.0,1213.0,5.9,,4676.5,4,False
+FORD,Tourneo Connect,petrol/electric,41250,43750.0,110.0,1213.0,5.5,,4676.5,6,True
+FORD,Tourneo Courier,petrol,24400,26700.0,92.0,,6.5,,4343.0,4,True
+HONDA,CR-V,petrol/electric,46900,50900.0,135.0,587.0,5.3,,4706.0,5,False
+HONDA,Civic,petrol,63900,63900.0,242.0,410.0,8.5,,4594.0,1,True
+HONDA,Civic,petrol/electric,37500,38500.0,135.0,415.0,3.4,,4560.0,3,False
+HONDA,HR-V,petrol/electric,34500,37600.0,96.0,327.5,5.5,,4355.0,4,True
+HONDA,Jazz,petrol/electric,25700,28000.0,90.0,304.0,3.6,,4089.0,4,False
+HONDA,Prelude,petrol/electric,50900,50900.0,135.0,269.0,3.4,,4525.0,1,False
+HONDA,ZR-V,petrol/electric,42300,43900.0,135.0,390.0,5.3,,4568.0,3,False
+HYUNDAI,Bayon,lpg,22850,23675.0,58.0,400.0,6.0,,4180.0,2,False
+HYUNDAI,Bayon,petrol,21350,24100.0,66.0,411.0,5.5,,4180.0,8,True
+HYUNDAI,Bayon,petrol/electric,25300,27300.0,74.0,352.0,5.5,,4180.0,3,False
+HYUNDAI,Inster,electric,26650,27650.0,28.0,280.0,15.0,,3825.0,3,True
+HYUNDAI,Inster Cross,electric,29900,29900.0,28.0,238.0,15.0,,3845.0,1,True
+HYUNDAI,Kona,electric,38700,41300.0,50.0,466.0,15.0,,4355.0,5,True
+HYUNDAI,Kona,lpg,26950,27650.0,71.0,466.0,7.5,,4350.0,2,True
+HYUNDAI,Kona,petrol,26950,31350.0,102.0,466.0,5.5,,4350.0,5,False
+HYUNDAI,Kona,petrol/electric,29350,34350.0,95.0,466.0,5.5,,4350.0,5,True
+HYUNDAI,Tucson,petrol,34400,36700.0,110.0,620.0,6.5,,4525.0,5,True
+HYUNDAI,Tucson,petrol/electric,38500,43500.0,176.0,587.0,6.5,,4525.0,16,True
+HYUNDAI,i20,petrol,19900,23750.0,66.0,352.0,5.5,,4065.0,5,True
+HYUNDAI,i30,petrol,28050,31350.0,85.0,395.0,6.5,,4340.0,9,True
+HYUNDAI,i30,petrol/electric,30900,32150.0,88.5,395.0,5.5,,4340.0,6,True
+JEEP,Avenger,electric,39400,40900.0,62.0,355.0,15.0,,4084.0,5,True
+JEEP,Avenger,petrol,25700,28700.0,74.0,380.0,5.5,,4084.0,4,True
+JEEP,Avenger,petrol/electric,27700,31700.0,81.0,380.0,5.5,,4084.0,9,True
+JEEP,Compass,electric,47900,49650.0,104.0,550.0,18.0,,4548.0,4,True
+JEEP,Compass,petrol/electric,40900,44900.0,136.0,550.0,6.5,,4548.0,8,True
+JEEP,Grand Cherokee,petrol/electric,93000,99500.0,279.0,570.0,6.5,,4914.0,2,True
+JEEP,Renegade,petrol/electric,35600,35600.0,96.0,351.0,5.5,,4239.0,1,True
+JEEP,Wrangler 4p,petrol,71500,72500.0,200.0,533.0,8.5,,4882.0,2,True
+JEEP,Wrangler 4p,petrol/electric,85500,86750.0,279.0,533.0,3.4,,4882.0,2,False
+KIA,EV2,electric,26600,34350.0,36.0,362.0,15.0,,4065.0,5,True
+KIA,EV3,electric,35950,41950.0,50.0,460.0,15.0,,4300.0,6,True
+KIA,EV4,electric,37950,44775.0,50.0,435.0,15.0,,4430.0,6,True
+KIA,Niro,petrol/electric,33250,38000.0,95.0,451.0,1.3,,4420.0,9,False
+KIA,Picanto,lpg,19550,21100.0,47.0,255.0,7.5,,3605.0,4,True
+KIA,Picanto,petrol,17800,20400.0,50.0,255.0,5.5,,3605.0,6,True
+KIA,Sportage,lpg,35750,38125.0,106.0,591.0,8.5,,4540.0,4,True
+KIA,Sportage,petrol,33750,36125.0,110.0,591.0,6.5,,4540.0,4,True
+KIA,Sportage,petrol/electric,36250,45250.0,176.0,587.0,6.5,,4540.0,22,True
+KIA,Stonic,lpg,24800,25775.0,69.0,352.0,7.5,,4165.0,2,True
+KIA,Stonic,petrol,22800,23775.0,74.0,352.0,5.5,,4165.0,2,True
+KIA,Stonic,petrol/electric,26250,28500.0,85.0,352.0,5.5,,4165.0,4,True
+KIA,XCeed,lpg,30850,30850.0,79.0,380.0,8.5,,4395.0,1,True
+KIA,XCeed,petrol,26600,33725.0,110.0,380.0,6.5,,4395.0,4,True
+KIA,XCeed,petrol/electric,29600,30725.0,85.0,380.0,5.5,,4395.0,2,True
+LAMBORGHINI,Revuelto,petrol/electric,517255,517255.0,747.0,140.0,6.5,,4947.0,1,True
+LAMBORGHINI,Temerario,petrol/electric,317222,317222.0,677.0,,6.5,,4706.0,1,True
+LAMBORGHINI,Urus,petrol,245327,259606.0,490.0,616.0,8.5,,5124.5,2,True
+LAMBORGHINI,Urus,petrol/electric,270092,270092.0,588.0,454.0,12.6,,5123.0,1,False
+LAND ROVER,Defender 3p,petrol,101700,138300.0,349.5,297.0,12.8,,4323.0,4,False
+LAND ROVER,Defender 3p,petrol/electric,68300,86950.0,183.0,297.0,7.6,,4323.0,8,False
+LAND ROVER,Defender 5p,petrol,105000,132200.0,313.0,786.0,12.8,,5099.0,5,False
+LAND ROVER,Defender 5p,petrol/electric,72100,101550.0,239.5,786.0,7.6,,4758.0,22,False
+LAND ROVER,Discovery,petrol/electric,79300,93650.0,258.0,258.0,7.3,,4969.0,8,False
+LAND ROVER,Discovery Sport,petrol/electric,55500,64150.0,150.0,963.0,6.5,,4597.0,8,True
+LAND ROVER,Range Rover,petrol/electric,143600,183700.0,338.0,818.0,11.4,,5052.0,51,False
+LAND ROVER,Range Rover Evoque,petrol/electric,50900,63900.0,150.0,591.0,5.3,,4371.0,15,False
+LAND ROVER,Range Rover Sport,petrol/electric,95300,123200.0,338.0,835.0,11.4,,4946.0,32,False
+LAND ROVER,Range Rover Velar,petrol/electric,73800,91600.0,221.0,673.0,5.3,,4797.0,12,False
+LEXUS,ES,petrol/electric,63500,68000.0,160.0,454.0,4.5,,4975.0,3,False
+LEXUS,LBX,petrol/electric,36500,42000.0,100.0,402.0,5.5,,4190.0,9,True
+LEXUS,LS,petrol/electric,123000,138000.0,264.0,480.0,7.1,,5235.0,2,False
+LEXUS,NX,petrol/electric,66700,72700.0,203.0,555.0,5.9,,4660.0,6,False
+LEXUS,RX,petrol/electric,86000,94250.0,227.0,612.0,5.9,,4890.0,4,False
+LEXUS,RZ Full Electric,electric,59900,68800.0,280.0,522.0,22.0,,4805.0,3,True
+LEXUS,UX,petrol/electric,43500,47300.0,146.0,268.0,4.1,,4495.0,4,False
+LEXUS,UX 300e,electric,58000,62000.0,57.0,367.0,15.0,,4495.0,2,True
+MASERATI,GranCabrio,petrol,169600,190400.0,383.0,172.5,15.5,,4962.5,2,False
+MASERATI,GranCabrio Folgore,electric,208600,208600.0,141.0,151.0,22.0,,4966.0,1,True
+MASERATI,GranTurismo,petrol,160900,182000.0,361.0,310.0,15.5,,4959.0,3,False
+MASERATI,GranTurismo Folgore,electric,199800,199800.0,141.0,270.0,22.0,,4960.0,1,True
+MASERATI,Grecale,petrol,128100,128100.0,390.0,570.0,9.5,,4859.0,1,False
+MASERATI,Grecale,petrol/electric,85200,89050.0,202.5,535.0,8.8,,4846.0,4,False
+MASERATI,Grecale Folgore,electric,111600,111600.0,136.0,535.0,22.0,,4865.0,1,True
+MASERATI,MC20,petrol,247850,247850.0,463.0,150.0,8.5,,4669.0,1,True
+MASERATI,MCPURA,petrol,223504,223504.0,463.0,100.0,8.5,,4669.0,1,True
+MAZDA,CX-30,petrol/electric,28950,35150.0,137.0,430.0,4.9,,4395.0,17,False
+MAZDA,CX-5,petrol/electric,35900,42150.0,104.0,583.0,5.5,,4690.0,7,True
+MAZDA,CX-6e,electric,46750,48250.0,60.0,468.0,15.0,,4850.0,2,True
+MAZDA,MX-5,petrol,33000,37600.0,97.0,130.0,6.1,,3915.0,8,False
+MAZDA,Mazda2 Hybrid,petrol/electric,25500,28400.0,85.0,286.0,2.9,,3940.0,5,False
+MAZDA,Mazda3,petrol/electric,28350,33750.0,137.0,334.0,5.1,,4460.0,14,False
+MAZDA,Mazda3 4 porte,petrol/electric,29850,34950.0,103.0,450.0,4.6,,4660.0,7,False
+MAZDA,Mazda6e,electric,42650,44875.0,60.0,466.0,15.0,,4921.0,4,True
+MERCEDES,CLA,petrol/electric,47296,55009.0,135.0,405.0,6.5,,4731.0,20,True
+MERCEDES,Citan,diesel,32420,33110.5,77.5,,4.6,,4488.0,2,False
+MERCEDES,Citan,petrol,31177,32420.0,96.0,,4.6,,4488.0,3,False
+MERCEDES,Classe A,diesel,38621,46231.0,110.0,420.0,4.3,,4570.0,18,False
+MERCEDES,Classe A,petrol/electric,37194,50730.0,160.0,420.0,5.3,,4570.0,25,False
+MERCEDES,Classe A 5p,diesel,38060,44166.5,110.0,370.0,4.3,,4453.0,22,False
+MERCEDES,Classe A 5p,petrol,69390,71336.0,310.0,370.0,8.4,,4453.0,2,False
+MERCEDES,Classe A 5p,petrol/electric,36657,50010.0,160.0,370.0,5.3,,4453.0,31,False
+MERCEDES,Classe B,diesel,39097,47692.0,110.0,445.0,4.3,,4427.0,21,False
+MERCEDES,Classe B,petrol/electric,38487,47628.0,120.0,455.0,5.4,,4427.0,26,False
+MERCEDES,Classe GLB 2019,diesel,45976,53095.0,110.0,570.0,4.8,,4651.0,21,False
+MERCEDES,Classe GLB 2019,petrol/electric,68549,70447.0,225.0,570.0,7.5,,4651.0,3,False
+MERCEDES,Classe T,diesel,35308,35903.5,77.5,,4.6,,4488.0,2,False
+MERCEDES,Classe T,petrol,33894,35082.0,96.0,,4.6,,4488.0,3,False
+MERCEDES,GLA,diesel,44929,54393.0,110.0,420.0,4.9,,4443.0,26,False
+MERCEDES,GLA,petrol,82980,84971.5,310.0,420.0,8.8,,4443.0,2,False
+MERCEDES,GLA,petrol/electric,43770,54768.0,120.0,420.0,5.7,,4443.0,29,False
+MG,Cyberster,electric,63000,65500.0,197.5,249.0,22.0,,4535.0,2,True
+MG,MG HS,petrol/electric,31990,36240.0,182.5,507.0,6.5,,4670.0,4,True
+MG,MG3,petrol,16990,17740.0,85.0,293.0,6.5,,4113.0,2,True
+MG,MG3,petrol/electric,19990,21490.0,143.0,293.0,4.4,,4113.0,3,False
+MG,MG4 Electric,electric,31790,36790.0,69.0,363.0,15.0,,4287.0,8,True
+MG,MG5S EV,electric,32990,36490.0,84.0,453.0,18.0,,4476.0,3,True
+MG,ZS,petrol,20490,21490.0,85.0,443.0,6.5,,4430.0,2,True
+MG,ZS,petrol/electric,25490,26490.0,145.0,443.0,4.4,,4430.0,2,False
+MINI,Aceman,electric,32106,36956.0,65.0,300.0,15.0,,4079.0,11,True
+MINI,Mini 3 porte,petrol,27906,31531.0,132.5,210.0,4.9,,3876.0,10,False
+MINI,Mini 5 porte,petrol,28906,32406.0,115.0,275.0,4.9,,4036.0,9,False
+MINI,Mini All Electric,electric,29506,34866.0,65.0,210.0,15.0,,3858.0,13,True
+MINI,Mini Cooper Cabrio,petrol,32906,35956.0,150.0,160.0,8.5,,3879.0,7,True
+MINI,Mini Countryman,electric,38706,42706.0,68.0,460.0,15.0,,4445.0,9,True
+MINI,Mini Countryman,petrol,33806,34056.0,90.0,440.0,6.5,,4444.0,3,True
+MINI,Mini Countryman,petrol/electric,35306,39356.0,125.0,436.0,5.5,,4444.0,14,True
+MITSUBISHI,ASX,lpg,25900,25900.0,90.0,355.0,8.5,,4227.0,1,True
+MITSUBISHI,ASX,petrol,24900,24900.0,84.0,484.0,6.5,,4227.0,1,True
+MITSUBISHI,ASX,petrol/electric,26900,29400.0,110.0,416.0,5.5,,4227.0,4,True
+MITSUBISHI,Grandis,petrol/electric,28900,32900.0,104.0,576.0,5.5,,4413.0,7,True
+MITSUBISHI,Outlander,petrol/electric,46900,51900.0,225.0,467.0,6.5,,4719.0,4,True
+NISSAN,Ariya,electric,42500,57600.0,45.0,468.0,15.0,,4595.0,6,True
+NISSAN,Juke,petrol,26000,29325.0,84.0,422.0,6.5,,4210.0,8,True
+NISSAN,Juke,petrol/electric,30300,32775.0,105.0,354.0,5.5,,4210.0,4,True
+NISSAN,Qashqai,petrol/electric,32600,40600.0,116.0,504.0,5.0,,4425.0,22,False
+NISSAN,Townstar,petrol,28100,33500.0,96.0,700.0,6.0,,4488.0,10,False
+NISSAN,Townstar EV,electric,41300,42200.0,51.0,600.0,15.0,,4699.5,2,True
+NISSAN,X-Trail,petrol/electric,38300,46700.0,150.0,575.0,5.2,,4680.0,21,False
+OPEL,Astra,diesel,32950,35750.0,96.0,422.0,5.2,,4391.0,3,True
+OPEL,Astra,petrol/electric,32450,39250.0,143.0,422.0,6.5,,4391.0,7,True
+OPEL,Astra station,diesel,34150,36950.0,96.0,598.0,5.2,,4642.0,3,True
+OPEL,Astra station,petrol/electric,33650,40450.0,143.0,516.0,6.5,,4642.0,7,True
+OPEL,Combo,diesel,26680,30380.0,96.0,850.0,4.4,,4760.0,9,False
+OPEL,Combo,petrol,26080,26080.0,81.0,597.0,5.3,,4410.0,1,False
+OPEL,Corsa,petrol,21000,21375.0,74.0,309.0,4.2,,4055.0,4,False
+OPEL,Corsa,petrol/electric,24150,25575.0,81.0,309.0,5.1,,4055.0,6,False
+OPEL,Corsa-e,electric,34150,35575.0,57.0,308.0,15.0,,4060.0,6,True
+OPEL,Frontera,petrol/electric,26100,27850.0,94.0,460.0,5.5,,4380.0,4,True
+OPEL,Frontera-e,electric,31050,33050.0,53.0,460.0,15.0,,4382.5,4,True
+OPEL,Mokka,petrol,27850,29600.0,100.0,310.0,6.5,,4151.0,4,True
+OPEL,Mokka,petrol/electric,30850,32600.0,107.0,350.0,5.5,,4150.0,4,True
+PEUGEOT,2008 / e-2008,electric,39350,41350.0,62.0,434.0,15.0,,4300.0,4,True
+PEUGEOT,2008 / e-2008,petrol,27950,28200.0,74.0,434.0,5.5,,4304.0,3,True
+PEUGEOT,2008 / e-2008,petrol/electric,30770,32420.0,107.0,434.0,5.1,,4300.0,8,False
+PEUGEOT,208 / e-208,electric,35430,36630.0,62.0,309.0,15.0,,4055.0,9,True
+PEUGEOT,208 / e-208,petrol,22350,22800.0,74.0,352.0,5.5,,4055.0,4,True
+PEUGEOT,208 / e-208,petrol/electric,24970,26620.0,81.0,352.0,5.1,,4055.0,7,False
+PEUGEOT,308,diesel,33620,36020.0,96.0,412.0,5.2,,4365.0,5,True
+PEUGEOT,308,petrol/electric,33140,39090.0,107.0,412.0,5.5,,4367.0,8,True
+PEUGEOT,308 station,diesel,34620,37020.0,96.0,608.0,5.2,,4635.0,5,True
+PEUGEOT,308 station,petrol/electric,34140,40090.0,107.0,600.0,5.5,,4636.0,8,True
+PEUGEOT,408,electric,43180,47890.0,104.0,471.0,18.0,,4687.0,3,True
+PEUGEOT,408,petrol/electric,38670,46100.0,165.0,418.0,6.5,,4690.0,11,True
+PEUGEOT,Rifter,diesel,27680,30730.0,96.0,1050.0,5.2,,4753.0,6,True
+PEUGEOT,Rifter,petrol,27080,27080.0,81.0,775.0,5.4,,4405.0,1,False
+PEUGEOT,e-308,electric,39980,41330.0,62.0,412.0,15.0,,4367.0,2,True
+PEUGEOT,e-Rifter,electric,37530,39280.0,62.0,912.5,15.0,,4578.0,4,True
+PORSCHE,Cayenne,electric,111443,133274.0,320.0,781.0,22.0,,4985.0,3,True
+PORSCHE,Cayenne 2017,petrol,108366,126193.0,304.5,772.0,10.9,,4930.0,4,False
+PORSCHE,Cayenne 2017,petrol/electric,119929,136523.0,382.0,545.0,3.0,,4930.0,5,False
+PORSCHE,Cayenne Coup&eacute;,electric,115529,137455.0,320.0,534.0,22.0,,4985.0,3,True
+PORSCHE,Cayenne Coup&eacute;,petrol,112529,129869.0,304.5,592.0,10.2,,4930.0,4,False
+PORSCHE,Cayenne Coup&eacute;,petrol/electric,122727,143445.5,382.0,434.0,3.6,,4930.0,6,False
+PORSCHE,Macan EV,electric,87287,97708.0,145.0,540.0,22.0,,4784.0,5,True
+PORSCHE,Panamera,petrol,125930,130304.0,260.0,495.0,8.7,,5052.0,3,False
+PORSCHE,Panamera,petrol/electric,140249,186834.0,456.0,404.0,3.5,,5052.0,6,False
+PORSCHE,Taycan,electric,110111,146050.0,163.0,407.0,22.0,,4963.0,11,True
+PORSCHE,Taycan Cross Turismo,electric,111136,141339.5,163.0,446.0,22.0,,4963.0,10,True
+RENAULT,4 E-Tech Electric,electric,29950,35890.0,78.0,375.0,18.0,,4144.0,6,True
+RENAULT,5 E-Tech Electric,electric,24950,31990.0,78.0,326.0,18.0,,3920.0,7,True
+RENAULT,Captur,lpg,24200,25375.0,82.0,487.0,6.1,,4227.0,4,False
+RENAULT,Captur,petrol,24550,25850.0,84.0,487.0,6.5,,4227.0,2,True
+RENAULT,Captur,petrol/electric,28700,31300.0,116.0,487.0,4.6,,4227.0,3,False
+RENAULT,Clio,lpg,20900,23300.0,88.0,391.0,8.5,,4117.0,3,True
+RENAULT,Clio,petrol,18900,20350.0,85.0,391.0,6.5,,4117.0,2,True
+RENAULT,Clio,petrol/electric,24900,26700.0,116.0,391.0,5.5,,4117.0,3,True
+RENAULT,Clio 2025,diesel,20450,20450.0,74.0,366.0,4.5,,4047.0,1,True
+RENAULT,Clio 2025,lpg,16600,19550.0,74.0,391.0,7.5,,4047.0,3,True
+RENAULT,Clio 2025,petrol,14950,19225.0,67.0,391.0,5.5,,4047.0,6,True
+RENAULT,Clio 2025,petrol/electric,22850,25100.0,105.0,391.0,5.5,,4047.0,3,True
+RENAULT,Kangoo,diesel,29050,31925.0,85.0,600.0,4.9,,4486.0,10,False
+RENAULT,Kangoo,petrol,28750,32300.0,96.0,600.0,6.0,,4486.0,11,False
+RENAULT,Symbioz,lpg,25900,28500.0,90.0,624.0,8.5,,4413.0,3,True
+RENAULT,Symbioz,petrol/electric,28350,32400.0,110.0,586.0,5.5,,4413.0,8,True
+RENAULT,Twingo E-Tech Electric,electric,19500,20300.0,35.0,260.0,15.0,,3789.0,2,True
+SEAT,Arona,petrol,22100,26750.0,85.0,400.0,5.0,,4164.0,13,False
+SEAT,Ateca,diesel,31850,40200.0,110.0,510.0,4.6,,4381.0,11,False
+SEAT,Ateca,petrol,29150,35650.0,110.0,510.0,6.5,,4381.0,10,True
+SEAT,Ibiza,petrol,16000,23200.0,77.5,355.0,5.0,,4070.0,14,False
+SEAT,Leon,diesel,30400,33400.0,97.5,380.0,5.2,,4368.0,6,True
+SEAT,Leon,petrol,27750,30100.0,97.5,380.0,6.5,,4368.0,6,True
+SEAT,Leon,petrol/electric,30950,33325.0,97.5,380.0,5.5,,4368.0,6,True
+SEAT,Leon station,diesel,31350,34375.0,97.5,620.0,5.2,,4642.0,6,True
+SEAT,Leon station,petrol,28700,31200.0,97.5,620.0,6.5,,4642.0,6,True
+SEAT,Leon station,petrol/electric,31650,34150.0,97.5,620.0,5.5,,4642.0,6,True
+SKODA,Elroq,electric,34500,45650.0,77.0,470.0,18.0,,4488.0,13,True
+SKODA,Fabia,petrol,20700,23650.0,85.0,380.0,4.6,,4108.0,18,False
+SKODA,Kamiq,petrol,25500,29800.0,85.0,400.0,4.9,,4241.0,19,False
+SKODA,Karoq,diesel,34700,40350.0,110.0,521.0,4.7,,4390.0,15,False
+SKODA,Karoq,petrol,32000,35900.0,110.0,521.0,5.2,,4390.0,15,False
+SKODA,Kodiaq,diesel,46250,51350.0,126.0,910.0,4.8,,4758.0,14,False
+SKODA,Kodiaq,petrol,50450,54400.0,150.0,910.0,4.6,,4758.0,6,False
+SKODA,Kodiaq,petrol/electric,42050,48950.0,110.0,845.0,4.6,,4758.0,11,False
+SKODA,Octavia,diesel,33450,37675.0,97.5,600.0,4.3,,4698.0,8,False
+SKODA,Octavia,petrol,29500,38150.0,110.0,600.0,5.0,,4698.0,11,False
+SKODA,Octavia,petrol/electric,31800,35400.0,110.0,600.0,4.6,,4698.0,7,False
+SKODA,Octavia wagon,diesel,34500,38725.0,97.5,640.0,4.1,,4698.0,8,False
+SKODA,Octavia wagon,petrol,30550,39200.0,110.0,640.0,5.1,,4698.0,11,False
+SKODA,Octavia wagon,petrol/electric,32850,36500.0,110.0,640.0,4.7,,4698.0,7,False
+SKODA,Scala,petrol,26150,31100.0,85.0,467.0,4.8,,4362.0,11,False
+SMART,#1,electric,37044,43593.0,75.0,323.0,18.0,,4270.0,7,True
+SMART,#3,electric,40544,48544.0,75.0,370.0,18.0,,4400.0,5,True
+SMART,#5,electric,47934,57554.0,103.5,630.0,18.0,,4695.0,6,True
+SUBARU,BRZ,petrol,49500,49500.0,172.0,243.0,8.8,,4265.0,1,False
+SUBARU,Crosstrek,petrol/electric,35900,38300.0,100.0,500.0,6.7,,4495.0,3,False
+SUBARU,Forester,petrol/electric,41950,45700.0,100.0,500.0,5.5,,4670.0,4,True
+SUBARU,Outback,petrol,54950,55700.0,124.0,470.0,7.4,,4870.0,2,False
+SUBARU,Solterra,electric,49900,51900.0,118.0,415.5,18.0,,4690.0,2,True
+SUZUKI,Across,petrol/electric,55400,55400.0,225.0,490.0,1.2,,4635.0,1,False
+SUZUKI,S-Cross,petrol/electric,29450,34200.0,81.0,430.0,4.8,,4305.0,16,False
+SUZUKI,Swace,petrol/electric,34000,35500.0,103.0,596.0,5.5,,4655.0,2,True
+SUZUKI,Swift,petrol/electric,21450,22950.0,61.0,265.0,4.8,,3860.0,5,True
+SUZUKI,Vitara,petrol/electric,27450,32200.0,81.0,362.0,5.5,,4185.0,16,True
+SUZUKI,e Vitara,electric,36900,36900.0,95.0,238.0,18.0,,4275.0,3,True
+TESLA,Model 3,electric,37970,46720.0,121.5,682.0,18.0,,4720.0,4,True
+TESLA,Model S,electric,110970,115970.0,287.5,745.0,22.0,,5021.0,2,True
+TESLA,Model Y,electric,41970,51970.0,120.0,,18.0,,4790.0,5,True
+TOYOTA,Aygo X,petrol,18950,21750.0,53.0,168.0,4.1,,3700.0,6,False
+TOYOTA,Aygo X,petrol/electric,20850,24150.0,85.0,231.0,3.5,,3776.0,4,False
+TOYOTA,C-HR,petrol/electric,36250,42425.0,133.5,349.0,6.5,,4362.0,10,True
+TOYOTA,Corolla Cross,petrol/electric,38000,45500.0,132.0,419.5,6.5,,4460.0,6,True
+TOYOTA,Corolla station,petrol/electric,35500,39300.0,103.0,596.0,3.4,,4650.0,3,False
+TOYOTA,Proace City Verso,diesel,28500,36000.0,96.0,723.5,4.4,,4578.0,10,False
+TOYOTA,Proace City Verso,petrol,27000,29250.0,81.0,597.0,5.3,,4403.0,2,False
+TOYOTA,Proace City Verso Electric,electric,39450,43100.0,62.0,723.5,15.0,,4578.0,6,True
+TOYOTA,Yaris,petrol,52000,55000.0,206.0,141.0,8.9,,3995.0,2,False
+TOYOTA,Yaris,petrol/electric,24550,28650.0,90.5,286.0,2.9,,3940.0,8,False
+TOYOTA,Yaris Cross,petrol/electric,28750,34300.0,96.0,397.0,3.5,,4180.0,12,False
+VOLKSWAGEN,Golf,diesel,34700,38950.0,110.0,380.0,5.2,,4286.0,7,True
+VOLKSWAGEN,Golf,petrol,31350,34425.0,110.0,380.0,6.5,,4286.0,8,True
+VOLKSWAGEN,Golf,petrol/electric,34000,38250.0,110.0,381.0,1.2,,4286.0,12,False
+VOLKSWAGEN,Golf station,diesel,35750,40000.0,110.0,611.0,5.2,,4635.0,7,True
+VOLKSWAGEN,Golf station,petrol,32400,32500.0,85.0,611.0,6.5,,4635.0,2,True
+VOLKSWAGEN,Golf station,petrol/electric,35050,37600.0,85.0,611.0,5.5,,4635.0,7,True
+VOLKSWAGEN,ID.3,electric,36490,42490.0,70.0,385.0,15.0,,4264.0,9,True
+VOLKSWAGEN,ID.Polo,electric,35000,36700.0,80.0,441.0,18.0,,4053.0,2,True
+VOLKSWAGEN,Polo,petrol,23900,27400.0,70.0,351.0,4.7,,4074.0,18,False
+VOLKSWAGEN,T-Cross,petrol,27200,30200.0,85.0,385.0,6.5,,4131.0,12,True
+VOLKSWAGEN,T-Roc,petrol/electric,33900,37500.0,110.0,475.0,5.5,,4372.0,5,True
+VOLKSWAGEN,Taigo,petrol,26000,29475.0,85.0,440.0,4.8,,4269.0,12,False
+VOLVO,EX30,electric,36350,44100.0,75.0,318.0,18.0,,4233.0,26,True
+VOLVO,EX30 Cross Country,electric,45350,51700.0,115.0,318.0,18.0,,4233.0,5,True
+VOLVO,EX40,electric,40900,61150.0,128.0,441.0,18.0,,4440.0,11,True
+VOLVO,EX60,electric,65350,73400.0,259.0,523.0,22.0,,4803.0,6,True
+VOLVO,EX60 Cross Country,electric,71450,74925.0,200.0,581.0,22.0,,4811.0,2,True
+VOLVO,V60,petrol/electric,49050,67050.0,247.0,519.0,6.5,,4778.0,13,True
+VOLVO,XC40,petrol/electric,41250,49200.0,120.0,443.0,5.5,,4440.0,11,True
+VOLVO,XC60,petrol/electric,58500,72550.0,247.0,468.0,6.5,,4708.0,22,True
