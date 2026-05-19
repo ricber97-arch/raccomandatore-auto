@@ -541,13 +541,21 @@ def _analizza_esclusi(catalogo, profilo: ProfiloUtente, top_risultati) -> list:
     }
     return [(LABELS[k], v) for k, v in cnt.most_common(3) if k in LABELS]
 
-# ─── Brand header (sempre visibile) ────────────────────────────────────────────
+# ─── Hero section (sempre visibile) ───────────────────────────────────────────
 
 st.markdown("""
-<div class="g-brand">
-  <span class="g-logo">guida<span>mi</span></span>
-  <span class="g-tagline">trova la tua auto</span>
+<div style="padding: 2rem 0 1.5rem;">
+  <p style="font-size:20px; font-weight:700; letter-spacing:-0.02em; color:#0A0A0A; margin-bottom:0.75rem;">
+    guida<span style="color:#C45C00">mi</span>
+  </p>
+  <h1 style="font-size:28px; font-weight:700; line-height:1.2; letter-spacing:-0.02em; color:#0A0A0A; margin-bottom:0.5rem;">
+    Trova l'auto giusta per come guidi davvero.
+  </h1>
+  <p style="font-size:15px; color:#6B6B6B; line-height:1.6; margin-bottom:0; max-width:540px;">
+    Il concessionario parte dalla marca. Noi partiamo da te — come usi l'auto ogni giorno — e arriviamo alla scelta più onesta sul mercato.
+  </p>
 </div>
+<hr style="border:none; border-top:0.5px solid #E8E8E4; margin-bottom:1.5rem;">
 """, unsafe_allow_html=True)
 
 step = st.session_state.step
