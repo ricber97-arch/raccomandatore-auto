@@ -11,9 +11,9 @@ from typing import Optional
 
 import pandas as pd
 
-CSV_PATH = Path(__file__).parent / "database_auto_2026.csv"
+CSV_PATH = Path(__file__).parent / "database_auto_2026_v2.csv"
 if not CSV_PATH.exists():
-    CSV_PATH = Path.home() / "Downloads" / "database_auto_2026.csv"
+    CSV_PATH = Path.home() / "Downloads" / "database_auto_2026_v2.csv"
 
 
 # ─── Strutture dati ────────────────────────────────────────────────────────────
@@ -29,7 +29,10 @@ class ProfiloUtente:
     budget_acquisto_eur: float
     n_passeggeri_abituali: int   # 1-5
     neopatentato: bool
-    contesto: str            # "privato" | "partita_iva"
+    contesto: str             # "privato" | "partita_iva"
+    mentalita: str            # "minimo" | "qualita" | "premium"
+    contesto_stradale: str    # "centro" | "periferia" | "montagna"
+    autonomia_utente: str     # "corta" | "media" | "lunga"
 
 
 @dataclass
@@ -42,9 +45,10 @@ class Auto:
     potenza_kw: Optional[float]
     peso_kg: Optional[float]      # sempre None nel DB 2026
     bagagliaio: Optional[float]   # litri
-    lunghezza_mm: Optional[float] # proxy dimensione vettura
-    consumo_stimato: bool = False  # True = valore stimato per categoria
-    n_versioni: int = 1           # numero versioni disponibili (tiebreaker)
+    lunghezza_mm: Optional[float]      # proxy dimensione vettura
+    trazione_prevalente: Optional[str] # 'anteriore' | 'integrale permanente' | ecc.
+    consumo_stimato: bool = False      # True = valore stimato per categoria
+    n_versioni: int = 1                # numero versioni disponibili (tiebreaker)
 
     @property
     def nome(self) -> str:
@@ -104,29 +108,32 @@ def carica_auto(path: Path = CSV_PATH) -> list[Auto]:
     df = pd.read_csv(path)
     # Rinomina colonne per mapping interno
     df = df.rename(columns={
-        "marca":            "Mk",
-        "modello":          "Cn",
-        "ft":               "Ft",
-        "prezzo_min":       "prezzo_listino_base_eur",
-        "bagagliaio_l":     "bagagliaio_litri",
-        "consumo_medio":    "consumo_medio_l100km",
+        "marca":         "Mk",
+        "modello":       "Cn",
+        "ft":            "Ft",
+        "prezzo_min":    "prezzo_listino_base_eur",
+        "bagagliaio_l":  "bagagliaio_litri",
+        "consumo_medio": "consumo_medio_l100km",
     })
 
     auto_list = []
     for _, row in df.iterrows():
         try:
+            trazione_raw = row.get("trazione_prevalente", None)
+            trazione = str(trazione_raw).strip() if not pd.isna(trazione_raw) else None
             auto_list.append(Auto(
-                marca           = str(row["Mk"]).strip(),
-                modello         = str(row["Cn"]).strip(),
-                alimentazione   = str(row["Ft"]).strip().lower(),
-                prezzo          = _opt(row["prezzo_listino_base_eur"]),
-                consumo         = _opt(row["consumo_medio_l100km"]),
-                potenza_kw      = _opt(row["potenza_media_kw"]),
-                peso_kg         = _opt(row.get("peso_medio_kg")),
-                bagagliaio      = _opt(row["bagagliaio_litri"]),
-                lunghezza_mm    = _opt(row.get("lunghezza_mm")),
-                consumo_stimato = str(row.get("consumo_stimato", "False")).strip().lower() == "true",
-                n_versioni      = int(row.get("n_versioni", 1) or 1),
+                marca               = str(row["Mk"]).strip(),
+                modello             = str(row["Cn"]).strip(),
+                alimentazione       = str(row["Ft"]).strip().lower(),
+                prezzo              = _opt(row["prezzo_listino_base_eur"]),
+                consumo             = _opt(row["consumo_medio_l100km"]),
+                potenza_kw          = _opt(row["potenza_media_kw"]),
+                peso_kg             = _opt(row.get("peso_medio_kg")),
+                bagagliaio          = _opt(row["bagagliaio_litri"]),
+                lunghezza_mm        = _opt(row.get("lunghezza_mm")),
+                trazione_prevalente = trazione,
+                consumo_stimato     = str(row.get("consumo_stimato", "False")).strip().lower() == "true",
+                n_versioni          = int(row.get("n_versioni", 1) or 1),
             ))
         except (ValueError, KeyError, TypeError):
             continue
@@ -147,32 +154,105 @@ class DettaglioScore:
         return [(c, p, d) for c, p, d in self.voci if p < 0]
 
 
-# ── Fix 1: budget score ────────────────────────────────────────────────────────
+# ── Budget score (dipende dalla mentalità d'acquisto) ─────────────────────────
 
-def budget_score(prezzo: Optional[float], budget: float) -> int:
-    """Premia chi usa il budget in modo intelligente (70-100% = sweet spot).
-    Penalizza chi è molto sotto (spreca potenziale) o fuori budget."""
-    if prezzo is None:
+def budget_score(prezzo: Optional[float], budget: float, mentalita: str = "qualita") -> int:
+    """Premia il rapporto prezzo/budget in base alla mentalità dell'utente."""
+    if prezzo is None or pd.isna(prezzo):
         return 0
     ratio = prezzo / budget
-    if ratio < 0.40:    return 0    # troppo sotto budget
-    if ratio < 0.55:    return 10
-    if ratio < 0.70:    return 20
-    if ratio < 0.85:    return 35
-    if ratio <= 1.0:    return 45   # sweet spot — usa bene il budget
-    if ratio <= 1.10:   return 20   # tolleranza 10%
-    return 0
+    if mentalita == "minimo":
+        if ratio < 0.50:    return 45   # spendere poco = ottimo
+        if ratio < 0.70:    return 35
+        if ratio < 0.85:    return 15
+        if ratio <= 1.0:    return 5
+        return 0
+    elif mentalita == "premium":
+        if ratio < 0.60:    return 0    # troppo economico per questo profilo
+        if ratio < 0.75:    return 15
+        if ratio < 0.90:    return 30
+        if ratio <= 1.10:   return 45   # sweet spot premium (fino a +10%)
+        if ratio <= 1.20:   return 25
+        return 0
+    else:  # qualita (default)
+        if ratio < 0.40:    return 0
+        if ratio < 0.55:    return 10
+        if ratio < 0.70:    return 20
+        if ratio < 0.85:    return 35
+        if ratio <= 1.0:    return 45
+        if ratio <= 1.10:   return 20
+        return 0
 
 
-def _budget_desc(prezzo: float, budget: float, score: int) -> str:
+def _budget_desc(prezzo: float, budget: float, score: int, mentalita: str = "qualita") -> str:
     ratio = prezzo / budget
     if score == 0:
-        if ratio < 0.40:
-            return f"prezzo {prezzo:,.0f}€ molto sotto budget (potenziale inespresso)"
+        if mentalita == "premium" and ratio < 0.60:
+            return f"prezzo {prezzo:,.0f}€ — troppo basso per il tuo profilo premium"
         return f"prezzo {prezzo:,.0f}€ fuori budget (+{(ratio - 1):.0%})"
     if ratio <= 1.0:
         return f"prezzo {prezzo:,.0f}€ ({ratio:.0%} del budget utilizzato)"
     return f"prezzo {prezzo:,.0f}€ — appena sopra budget (+{(ratio - 1):.0%}, tollerato)"
+
+
+# ── Marca score (dipende dalla mentalità) ─────────────────────────────────────
+
+MARCHE_PREMIUM = {
+    "AUDI", "BMW", "MERCEDES", "VOLVO", "LEXUS", "LAND ROVER",
+    "PORSCHE", "MASERATI", "ALFA ROMEO", "DS", "CUPRA", "ALPINE",
+    "TESLA", "GENESIS", "ASTON MARTIN", "BENTLEY", "FERRARI", "LAMBORGHINI",
+}
+MARCHE_ENTRY = {
+    "DACIA", "FIAT", "CITROEN", "RENAULT", "SEAT",
+    "HYUNDAI", "KIA", "MG", "BYD", "SUZUKI", "TOYOTA",
+}
+
+
+def marca_score(marca: str, mentalita: str) -> int:
+    """Bonus/malus marca in base alla mentalità dell'utente."""
+    marca = marca.upper()
+    if mentalita == "premium":
+        return 20 if marca in MARCHE_PREMIUM else 0
+    elif mentalita == "minimo":
+        if marca in MARCHE_ENTRY:   return 15
+        if marca in MARCHE_PREMIUM: return -10
+        return 5
+    return 0  # qualita: neutro
+
+
+# ── Contesto stradale score ────────────────────────────────────────────────────
+
+def contesto_stradale_score(auto: "Auto", contesto_stradale: str) -> int:
+    """Bonus/malus dimensione e trazione in base al contesto stradale."""
+    score = 0
+    if contesto_stradale == "centro":
+        if auto.lunghezza_mm is not None:
+            if auto.lunghezza_mm < 4000:    score += 20
+            elif auto.lunghezza_mm < 4200:  score += 10
+            elif auto.lunghezza_mm > 4500:  score -= 15
+            elif auto.lunghezza_mm > 4300:  score -= 5
+    elif contesto_stradale == "montagna":
+        if auto.trazione_prevalente:
+            t = auto.trazione_prevalente.lower()
+            if "integrale" in t:   score += 30
+            elif "inseribile" in t: score += 15
+    return score
+
+
+# ── Autonomia score (rilevante solo con ricarica a casa) ──────────────────────
+
+def autonomia_score(ft: str, autonomia_utente: str, ricarica_a_casa: bool) -> int:
+    """Bonus/malus per elettrici e PHEV in base all'autonomia richiesta dall'utente."""
+    if not ricarica_a_casa:
+        return 0
+    ft = ft.lower()
+    if ft == "electric":
+        if autonomia_utente == "corta":  return 15
+        if autonomia_utente == "media":  return 0
+        if autonomia_utente == "lunga":  return -20
+    if ft == "petrol/electric":
+        if autonomia_utente == "lunga":  return 10
+    return 0
 
 
 # ── Costo carburante / energia ─────────────────────────────────────────────────
@@ -264,15 +344,18 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
     """
     voci: list[tuple[str, float, str]] = []
 
-    km           = profilo.km_giorno
-    ricarica     = profilo.ricarica_a_casa
-    budget       = profilo.budget_acquisto_eur
-    passeggeri   = profilo.n_passeggeri_abituali
-    neopatentato = profilo.neopatentato
-    contesto     = profilo.contesto
-    mix_c        = profilo.mix_citta
-    mix_e        = profilo.mix_extra
-    mix_a        = profilo.mix_auto
+    km                = profilo.km_giorno
+    ricarica          = profilo.ricarica_a_casa
+    budget            = profilo.budget_acquisto_eur
+    passeggeri        = profilo.n_passeggeri_abituali
+    neopatentato      = profilo.neopatentato
+    contesto          = profilo.contesto
+    mentalita         = profilo.mentalita
+    contesto_str      = profilo.contesto_stradale
+    autonomia_ut      = profilo.autonomia_utente
+    mix_c             = profilo.mix_citta
+    mix_e             = profilo.mix_extra
+    mix_a             = profilo.mix_auto
 
     # ── Vincolo neopatentato (Italia: max 55 kW/t per i primi 3 anni) ──────────
     # peso_kg non disponibile nel DB 2026 → rapporto_peso_potenza sempre None,
@@ -286,10 +369,25 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
         if mix_a > 0.40 or km > 80:
             return None
 
+    # ── Vincolo elettrico puro con viaggi lunghi (anche con ricarica) ───────────
+    if auto.is_elettrica and autonomia_ut == "lunga" and ricarica:
+        return None
+
+    # ── Vincolo auto troppo grande per centro storico ───────────────────────────
+    if contesto_str == "centro" and auto.lunghezza_mm and auto.lunghezza_mm > 4600:
+        return None
+
+    # ── Vincolo budget per mentalità ────────────────────────────────────────────
+    if auto.prezzo is not None:
+        ratio = auto.prezzo / budget
+        if mentalita == "minimo" and ratio > 1.05:    return None  # max 5% flessibilità
+        if mentalita == "qualita" and ratio > 1.10:   return None  # max 10%
+        if mentalita == "premium" and ratio > 1.20:   return None  # max 20%
+
     # ── 1. Budget ──────────────────────────────────────────────────────────────
     if auto.prezzo is not None:
-        bs = budget_score(auto.prezzo, budget)
-        voci.append(("budget", bs, _budget_desc(auto.prezzo, budget, bs)))
+        bs = budget_score(auto.prezzo, budget, mentalita)
+        voci.append(("budget", bs, _budget_desc(auto.prezzo, budget, bs, mentalita)))
     else:
         voci.append(("budget", 3, "prezzo non disponibile (verifica concessionario)"))
 
@@ -361,6 +459,37 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
     elif auto.n_versioni >= 3:
         voci.append(("disponibilità", 2,
             f"{auto.n_versioni} versioni disponibili"))
+
+    # ── 7. Marca vs mentalità acquisto ────────────────────────────────────────
+    ms = marca_score(auto.marca, mentalita)
+    if ms != 0:
+        if ms > 0:
+            voci.append(("marca", ms,
+                f"{auto.marca}: marca adatta al tuo profilo d'acquisto"))
+        else:
+            voci.append(("marca", ms,
+                f"{auto.marca}: marca premium, non ottimale per chi cerca il minimo"))
+
+    # ── 8. Contesto stradale (dimensione / trazione) ──────────────────────────
+    cs = contesto_stradale_score(auto, contesto_str)
+    if cs != 0:
+        if contesto_str == "centro":
+            desc = ("dimensioni compatte: ideale per centro e ZTL" if cs > 0
+                    else "auto lunga: manovre difficili in centro città")
+        else:  # montagna
+            desc = ("trazione integrale: ottima su strade di montagna" if cs > 10
+                    else "trazione inseribile: buona per fondi sdrucciolevoli")
+        voci.append(("contesto_stradale", cs, desc))
+
+    # ── 9. Autonomia utente (rilevante solo con ricarica a casa) ─────────────
+    aus = autonomia_score(auto.alimentazione, autonomia_ut, ricarica)
+    if aus != 0:
+        if aus > 0:
+            voci.append(("autonomia", aus,
+                "autonomia adatta ai tuoi tragitti con ricarica domestica"))
+        else:
+            voci.append(("autonomia", aus,
+                "autonomia elettrica limitata per i tuoi viaggi lunghi"))
 
     totale = sum(p for _, p, _ in voci)
     return DettaglioScore(totale=totale, voci=voci)
@@ -451,39 +580,48 @@ def test_profili():
 
     profili = [
         (
-            "Città / ricarica / budget 30k — atteso elettrici o ibridi, no diesel",
+            "minimo / centro / 18k / no ricarica — atteso: compatte <4200mm, marche entry",
             ProfiloUtente(
-                mix_citta=0.80, mix_extra=0.15, mix_auto=0.05,
-                km_giorno=22, autonomia_viaggio=40,
-                ricarica_a_casa=True,
-                budget_acquisto_eur=30_000,
-                n_passeggeri_abituali=2,
-                neopatentato=False,
-                contesto="privato",
-            ),
-        ),
-        (
-            "Autostrada / no ricarica / budget 40k — atteso diesel fascia €30-40k",
-            ProfiloUtente(
-                mix_citta=0.15, mix_extra=0.25, mix_auto=0.60,
-                km_giorno=95, autonomia_viaggio=280,
-                ricarica_a_casa=False,
-                budget_acquisto_eur=40_000,
-                n_passeggeri_abituali=2,
-                neopatentato=False,
-                contesto="privato",
-            ),
-        ),
-        (
-            "Mix / no ricarica / budget 18k / 4 passeggeri — atteso bagagliaio >350L, no citycar",
-            ProfiloUtente(
-                mix_citta=0.40, mix_extra=0.35, mix_auto=0.25,
-                km_giorno=50, autonomia_viaggio=150,
+                mix_citta=0.75, mix_extra=0.20, mix_auto=0.05,
+                km_giorno=20, autonomia_viaggio=40,
                 ricarica_a_casa=False,
                 budget_acquisto_eur=18_000,
+                n_passeggeri_abituali=2,
+                neopatentato=False,
+                contesto="privato",
+                mentalita="minimo",
+                contesto_stradale="centro",
+                autonomia_utente="media",
+            ),
+        ),
+        (
+            "premium / periferia / 55k / ricarica / autonomia lunga — atteso: premium no EV puro",
+            ProfiloUtente(
+                mix_citta=0.30, mix_extra=0.35, mix_auto=0.35,
+                km_giorno=70, autonomia_viaggio=280,
+                ricarica_a_casa=True,
+                budget_acquisto_eur=55_000,
+                n_passeggeri_abituali=2,
+                neopatentato=False,
+                contesto="privato",
+                mentalita="premium",
+                contesto_stradale="periferia",
+                autonomia_utente="lunga",
+            ),
+        ),
+        (
+            "qualita / montagna / 38k / 4 pass / no ricarica — atteso: 4x4, bagagliaio >350L",
+            ProfiloUtente(
+                mix_citta=0.25, mix_extra=0.45, mix_auto=0.30,
+                km_giorno=60, autonomia_viaggio=150,
+                ricarica_a_casa=False,
+                budget_acquisto_eur=38_000,
                 n_passeggeri_abituali=4,
                 neopatentato=False,
                 contesto="privato",
+                mentalita="qualita",
+                contesto_stradale="montagna",
+                autonomia_utente="media",
             ),
         ),
     ]
@@ -535,6 +673,10 @@ def cli():
     neopatentato = _chiedi_bool("  Sei neopatentato (patente < 3 anni)?")
     contesto = _chiedi_scelta("  Acquisto per uso?", ["privato", "partita_iva"])
 
+    mentalita_cli     = _chiedi_scelta("  Mentalità acquisto?", ["minimo", "qualita", "premium"])
+    contesto_str_cli  = _chiedi_scelta("  Contesto stradale?", ["centro", "periferia", "montagna"])
+    autonomia_ut_cli  = _chiedi_scelta("  Autonomia viaggi?", ["corta", "media", "lunga"]) if ricarica else "media"
+
     profilo = ProfiloUtente(
         mix_citta=mix_c,
         mix_extra=mix_e,
@@ -546,6 +688,9 @@ def cli():
         n_passeggeri_abituali=passeggeri,
         neopatentato=neopatentato,
         contesto=contesto,
+        mentalita=mentalita_cli,
+        contesto_stradale=contesto_str_cli,
+        autonomia_utente=autonomia_ut_cli,
     )
 
     print("\n  Calcolo raccomandazioni...")

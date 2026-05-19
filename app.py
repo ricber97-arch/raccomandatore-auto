@@ -116,6 +116,53 @@ PROFILI_GUIDA = {
     },
 }
 
+# ─── Dati step 5-7 ────────────────────────────────────────────────────────────
+
+MENTALITA_GUIDA = {
+    "💰 Spendo il minimo necessario": {
+        "descrizione": "L'auto è un mezzo. Voglio spendere poco e risparmiare sulla gestione.",
+        "valore": "minimo",
+    },
+    "⚖️ Cerco il miglior rapporto qualità/prezzo": {
+        "descrizione": "Voglio sfruttare bene il mio budget senza rinunciare a qualità e tecnologia.",
+        "valore": "qualita",
+    },
+    "✨ Sono disposto a spendere di più per qualità": {
+        "descrizione": "Marca, finiture e tecnologia contano. Il budget è una guida, non un limite fisso.",
+        "valore": "premium",
+    },
+}
+
+CONTESTO_STRADALE = {
+    "🏙️ Centro città, ZTL, parcheggi stretti": {
+        "descrizione": "Traffico intenso, manovre frequenti, spazi ridotti. Le dimensioni contano.",
+        "valore": "centro",
+    },
+    "🌆 Periferia e circonvallazioni": {
+        "descrizione": "Strade scorrevoli, parcheggi comodi. Nessun vincolo particolare.",
+        "valore": "periferia",
+    },
+    "🏔️ Strade di montagna o sterrato": {
+        "descrizione": "Curve, salite, fondi sconnessi o innevati. La trazione fa la differenza.",
+        "valore": "montagna",
+    },
+}
+
+AUTONOMIA_OPZIONI = {
+    "🏠 No, al massimo 80-100km in una volta": {
+        "descrizione": "Uso quotidiano locale. Non ho bisogno di grande autonomia.",
+        "valore": "corta",
+    },
+    "🗺️ Qualche volta, tra 100 e 300km": {
+        "descrizione": "Ogni tanto faccio tragitti più lunghi, ma non è la norma.",
+        "valore": "media",
+    },
+    "🛣️ Sì, spesso faccio oltre 300km senza soste": {
+        "descrizione": "Viaggi frequenti e lunghi. L'autonomia è una priorità.",
+        "valore": "lunga",
+    },
+}
+
 # ─── Session state ─────────────────────────────────────────────────────────────
 
 _DEFAULTS = {
@@ -124,8 +171,10 @@ _DEFAULTS = {
     "mix_citta": None, "mix_extra": None, "mix_auto": None,
     "n_passeggeri": None, "ricarica_a_casa": None, "budget": None,
     "neopatentato": False, "contesto": "privato",
+    "mentalita": "qualita", "contesto_stradale": "periferia", "autonomia_utente": "media",
     "label_uso": None, "label_passeggeri": None,
     "label_parcheggio": None, "label_budget": None,
+    "label_mentalita": None, "label_contesto_str": None,
 }
 
 for _k, _v in _DEFAULTS.items():
@@ -146,6 +195,8 @@ def _riepilogo() -> str:
         st.session_state.get("label_passeggeri"),
         st.session_state.get("label_parcheggio"),
         st.session_state.get("label_budget"),
+        st.session_state.get("label_mentalita"),
+        st.session_state.get("label_contesto_str"),
     ]
     return " · ".join(p for p in parts if p)
 
@@ -228,8 +279,8 @@ st.caption("Database auto 2026 — oltre 400 versioni, prezzi di listino aggiorn
 step = st.session_state.step
 
 if step != "results":
-    step_num = step if isinstance(step, int) else 5
-    st.progress(step_num / 5, text=f"Step {step_num} di 5")
+    step_num = step if isinstance(step, int) else 8
+    st.progress(step_num / 8, text=f"Step {step_num} di 8")
     riepilogo_txt = _riepilogo()
     if riepilogo_txt:
         st.caption(f"📋 {riepilogo_txt}")
@@ -293,9 +344,41 @@ elif step == 4:
         if st.button(lbl, use_container_width=True, key=f"s4_{i}"):
             _avanza(dict(budget=budget, label_budget=display), 5)
 
-# ─── Step 5 ────────────────────────────────────────────────────────────────────
+# ─── Step 5 — Mentalità acquisto ───────────────────────────────────────────────
 
 elif step == 5:
+    st.subheader("Come ragioni sull'acquisto?")
+    for i, (nome, m) in enumerate(MENTALITA_GUIDA.items()):
+        label = f"{nome}\n{m['descrizione']}"
+        if st.button(label, use_container_width=True, key=f"s5_m{i}"):
+            _avanza({"mentalita": m["valore"], "label_mentalita": nome}, 6)
+
+# ─── Step 6 — Contesto stradale ────────────────────────────────────────────────
+
+elif step == 6:
+    st.subheader("Dove guidi principalmente?")
+    for i, (nome, c) in enumerate(CONTESTO_STRADALE.items()):
+        label = f"{nome}\n{c['descrizione']}"
+        if st.button(label, use_container_width=True, key=f"s6_c{i}"):
+            # Step 7 solo se ricarica a casa
+            next_step = 7 if st.session_state.ricarica_a_casa else 8
+            extra = {} if st.session_state.ricarica_a_casa else {"autonomia_utente": "media"}
+            _avanza({"contesto_stradale": c["valore"],
+                     "label_contesto_str": nome, **extra}, next_step)
+
+# ─── Step 7 — Autonomia (solo se ricarica_a_casa=True) ─────────────────────────
+
+elif step == 7:
+    st.subheader("Fai mai viaggi lunghi senza fermarti a ricaricare?")
+    st.caption("Risponde solo a chi ha la ricarica a casa — influenza il tipo di elettrico consigliato")
+    for i, (nome, a) in enumerate(AUTONOMIA_OPZIONI.items()):
+        label = f"{nome}\n{a['descrizione']}"
+        if st.button(label, use_container_width=True, key=f"s7_a{i}"):
+            _avanza({"autonomia_utente": a["valore"]}, 8)
+
+# ─── Step 8 — Ultime info ──────────────────────────────────────────────────────
+
+elif step == 8:
     st.subheader("Ultime info")
     st.write("")
     neo  = st.checkbox("Sono neopatentato (patente < 3 anni)", key="chk_neo",
@@ -329,6 +412,9 @@ elif step == "results":
         n_passeggeri_abituali = st.session_state.n_passeggeri,
         neopatentato          = st.session_state.neopatentato,
         contesto              = st.session_state.contesto,
+        mentalita             = st.session_state.get("mentalita", "qualita"),
+        contesto_stradale     = st.session_state.get("contesto_stradale", "periferia"),
+        autonomia_utente      = st.session_state.get("autonomia_utente", "media"),
     )
 
     with st.spinner("Calcolo raccomandazioni..."):
@@ -412,13 +498,17 @@ elif step == "results":
     if st.button("↺ Ricomincia", key="restart"):
         _reset()
 
-# ─── Bottone Indietro (step 2-5) ───────────────────────────────────────────────
+# ─── Bottone Indietro (step 2-8) ───────────────────────────────────────────────
 
 if isinstance(step, int) and step > 1:
     st.write("")
     st.write("")
     if st.button("← Indietro", key="back_btn"):
-        st.session_state.step = step - 1
+        # Step 8 torna a 7 se c'è ricarica, a 6 se no (step 7 era saltato)
+        if step == 8 and not st.session_state.get("ricarica_a_casa", False):
+            st.session_state.step = 6
+        else:
+            st.session_state.step = step - 1
         st.rerun()
 
 # ─── Footer ────────────────────────────────────────────────────────────────────
