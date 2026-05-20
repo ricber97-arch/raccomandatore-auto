@@ -806,15 +806,16 @@ elif step == "results":
 
         COLORI    = {1: "#C45C00", 2: "#1A6B3A", 3: "#2563EB"}
         LABEL_RNK = {1: "Prima scelta", 2: "Seconda scelta", 3: "Terza scelta"}
-        ETICHETTE = {
+        ETICHETTE_FT = {
+            "full_hybrid": "Ibrida full",
+            "phev":        "Ibrida plug-in",
             "electric":    "Elettrica",
             "petrol":      "Benzina",
             "diesel":      "Diesel",
             "lpg":         "GPL",
             "ng":          "Metano",
-            "phev":        "Ibrida plug-in",
-            "full_hybrid": "Ibrido full-HEV",
         }
+        ETICHETTE = ETICHETTE_FT  # alias per compatibilità
 
         for r in risultati:
             auto     = r.auto
