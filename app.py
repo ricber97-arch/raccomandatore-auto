@@ -772,7 +772,8 @@ elif step == "results":
         st.session_state.step = 1
         st.rerun()
 
-    profilo = ProfiloUtente(
+    import dataclasses as _dc
+    _kwargs = dict(
         mix_citta             = st.session_state.mix_citta,
         mix_extra             = st.session_state.mix_extra,
         mix_auto              = st.session_state.mix_auto,
@@ -786,8 +787,10 @@ elif step == "results":
         mentalita             = st.session_state.get("mentalita", "qualita"),
         contesto_stradale     = st.session_state.get("contesto_stradale", "periferia"),
         autonomia_utente      = st.session_state.get("autonomia_utente", "media"),
-        pref_carrozzeria      = st.session_state.get("pref_carrozzeria", "nessuna"),
     )
+    if any(f.name == "pref_carrozzeria" for f in _dc.fields(ProfiloUtente)):
+        _kwargs["pref_carrozzeria"] = st.session_state.get("pref_carrozzeria", "nessuna")
+    profilo = ProfiloUtente(**_kwargs)
 
     with st.spinner("Calcolo raccomandazioni…"):
         catalogo  = get_catalogo()
