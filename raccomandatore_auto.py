@@ -11,9 +11,9 @@ from typing import Optional
 
 import pandas as pd
 
-CSV_PATH = Path(__file__).parent / "database_auto_2026_v2.csv"
+CSV_PATH = Path(__file__).parent / "database_auto_2026_v4.csv"
 if not CSV_PATH.exists():
-    CSV_PATH = Path.home() / "Downloads" / "database_auto_2026_v2.csv"
+    CSV_PATH = Path.home() / "Downloads" / "database_auto_2026_v4.csv"
 
 
 # ─── Strutture dati ────────────────────────────────────────────────────────────
@@ -33,6 +33,7 @@ class ProfiloUtente:
     mentalita: str            # "minimo" | "qualita" | "premium"
     contesto_stradale: str    # "centro" | "periferia" | "montagna"
     autonomia_utente: str     # "corta" | "media" | "lunga"
+    pref_carrozzeria: str = "nessuna"  # "nessuna" | "suv" | "berlina" | "station_wagon" | "monovolume"
 
 
 @dataclass
@@ -49,6 +50,7 @@ class Auto:
     trazione_prevalente: Optional[str] # 'anteriore' | 'integrale permanente' | ecc.
     consumo_stimato: bool = False      # True = valore stimato per categoria
     n_versioni: int = 1                # numero versioni disponibili (tiebreaker)
+    carrozzeria_prevalente: Optional[str] = None  # es. "Suv/Fuoristrada", "berlina 3/5 porte"
 
     @property
     def nome(self) -> str:
@@ -67,7 +69,7 @@ class Auto:
 
     @property
     def is_phev(self) -> bool:
-        return self.alimentazione == "petrol/electric"
+        return self.alimentazione == "phev"
 
     @property
     def is_diesel(self) -> bool:
@@ -83,9 +85,7 @@ class Auto:
 
     @property
     def is_full_hybrid(self) -> bool:
-        """Nel DB 2026 i full hybrid Toyota sono classificati come petrol/electric.
-        Non ci sono full hybrid mascherati da petrol → restituisce sempre False."""
-        return False
+        return self.alimentazione == "full_hybrid"
 
     @property
     def is_mild_petrol(self) -> bool:
@@ -121,6 +121,8 @@ def carica_auto(path: Path = CSV_PATH) -> list[Auto]:
         try:
             trazione_raw = row.get("trazione_prevalente", None)
             trazione = str(trazione_raw).strip() if not pd.isna(trazione_raw) else None
+            carr_raw = row.get("carrozzeria_prevalente", None)
+            carrozzeria = str(carr_raw).strip() if not pd.isna(carr_raw) else None
             auto_list.append(Auto(
                 marca               = str(row["Mk"]).strip(),
                 modello             = str(row["Cn"]).strip(),
@@ -134,6 +136,7 @@ def carica_auto(path: Path = CSV_PATH) -> list[Auto]:
                 trazione_prevalente = trazione,
                 consumo_stimato     = str(row.get("consumo_stimato", "False")).strip().lower() == "true",
                 n_versioni          = int(row.get("n_versioni", 1) or 1),
+                carrozzeria_prevalente = carrozzeria,
             ))
         except (ValueError, KeyError, TypeError):
             continue
@@ -146,6 +149,11 @@ def carica_auto(path: Path = CSV_PATH) -> list[Auto]:
 class DettaglioScore:
     totale: float
     voci: list[tuple[str, float, str]]   # (categoria, punti, descrizione)
+    motorizzazione: float = 0.0   # contributo puro peso motorizzazione
+    budget: float = 0.0           # contributo budget
+    marca_s: float = 0.0          # contributo marca
+    carrozzeria: float = 0.0      # contributo preferenza carrozzeria
+    malus: float = 0.0            # malus PHEV autostrada
 
     def positivi(self):
         return [(c, p, d) for c, p, d in self.voci if p > 0]
@@ -249,6 +257,36 @@ def contesto_stradale_score(auto: "Auto", contesto_stradale: str) -> int:
     return score
 
 
+# ── Carrozzeria score ─────────────────────────────────────────────────────────
+
+def carrozzeria_score(carrozzeria_auto: Optional[str], preferenza: str) -> int:
+    """Bonus se la carrozzeria corrisponde alla preferenza; malus se opposta."""
+    if preferenza == "nessuna" or carrozzeria_auto is None:
+        return 0
+    carr = carrozzeria_auto.lower()
+    if preferenza == "suv":
+        if "suv" in carr or "fuoristrada" in carr:
+            return 15
+        if "berlina 2" in carr or "coupé" in carr or "cabrio" in carr:
+            return -10
+    elif preferenza == "berlina":
+        if "berlina" in carr:
+            return 15
+        if "monovolume" in carr or ("suv" in carr and "fuoristrada" in carr):
+            return -10
+    elif preferenza == "station_wagon":
+        if "station wagon" in carr:
+            return 15
+        if "coupé" in carr or "cabrio" in carr:
+            return -10
+    elif preferenza == "monovolume":
+        if "monovolume" in carr:
+            return 15
+        if "coupé" in carr or "cabrio" in carr or "berlina 2" in carr:
+            return -10
+    return 0
+
+
 # ── Autonomia score (rilevante solo con ricarica a casa) ──────────────────────
 
 def autonomia_score(ft: str, autonomia_utente: str, ricarica_a_casa: bool) -> int:
@@ -260,9 +298,108 @@ def autonomia_score(ft: str, autonomia_utente: str, ricarica_a_casa: bool) -> in
         if autonomia_utente == "corta":  return 15
         if autonomia_utente == "media":  return 0
         if autonomia_utente == "lunga":  return -20
-    if ft == "petrol/electric":
+    if ft == "phev":
         if autonomia_utente == "lunga":  return 10
     return 0
+
+
+# ── Costo carburante / energia ─────────────────────────────────────────────────
+
+PREZZI_CARBURANTE: dict[str, float] = {
+    "petrol":      1.78,
+    "diesel":      1.68,
+    "lpg":         0.85,
+    "ng":          1.10,
+    "phev":        1.78,   # quota termica PHEV senza ricarica
+    "full_hybrid": 1.78,   # benzina con recupero energetico
+}
+
+
+def stima_costo_mensile(consumo: Optional[float], ft: str, km_giorno: int,
+                         ricarica: bool = False) -> float:
+    """Stima costo mensile carburante/energia in €."""
+    if not consumo or consumo <= 0:
+        return 0.0
+    ft = ft.lower()
+    if ft == "electric":
+        return round(km_giorno * 30 * (consumo / 100) * 0.25, 0)
+    if ft == "phev" and ricarica:
+        consumo_eff = consumo * 0.4   # uso parzialmente elettrico
+        return round(km_giorno * 30 * (consumo_eff / 100) * PREZZI_CARBURANTE["petrol"], 0)
+    prezzo = PREZZI_CARBURANTE.get(ft, 1.78)
+    return round(km_giorno * 30 * (consumo / 100) * prezzo, 0)
+
+
+# ── Peso motorizzazione con mix percorso ──────────────────────────────────────
+
+PESI_BASE: dict[str, tuple[int, int, int]] = {
+    # chiave → (punteggio_città, punteggio_extraurbano, punteggio_autostrada) 0-100
+    "electric":         (100, 60, 20),
+    "phev_ricarica":    (90,  80, 60),
+    "phev_no_ricarica": (70,  60, 30),
+    "full_hybrid":      (88,  72, 50),   # HEV: ottimo in città, buono misto, meno in autostrada
+    "petrol":           (70,  75, 65),
+    "diesel":           (30,  80, 100),
+    "lpg":              (65,  65, 50),
+    "ng":               (50,  55, 45),
+}
+
+_FT_LABEL: dict[str, str] = {
+    "electric":    "Elettrica",
+    "phev":        "Ibrida plug-in",
+    "full_hybrid": "Ibrido full-HEV",
+    "petrol":      "Benzina",
+    "diesel":      "Diesel",
+    "lpg":         "GPL",
+    "ng":          "Metano",
+}
+
+
+def peso_motorizzazione(
+    ft: str,
+    mix_citta: float,
+    mix_extra: float,
+    mix_auto: float,
+    ricarica_a_casa: bool,
+) -> int:
+    ft = ft.lower()
+    if ft == "electric" and not ricarica_a_casa:
+        return 15   # penalità forte — elettrico senza ricarica è sempre problematico
+    if ft == "phev":
+        key = "phev_ricarica" if ricarica_a_casa else "phev_no_ricarica"
+        pesi = PESI_BASE[key]
+    else:
+        pesi = PESI_BASE.get(ft, (50, 50, 50))
+    score = pesi[0] * mix_citta + pesi[1] * mix_extra + pesi[2] * mix_auto
+    return round(score)
+
+
+def calcola_malus_phev(ft: str, mix_auto: float, ricarica_a_casa: bool) -> int:
+    """Malus aggiuntivo per PHEV su percorsi autostradali (dove il motore termico domina)."""
+    if ft.lower() != "phev":
+        return 0
+    if not ricarica_a_casa:
+        if mix_auto >= 0.50:  return -35   # no ricarica + autostrada pesante = molto penalizzato
+        if mix_auto >= 0.30:  return -15
+        return -5
+    else:
+        if mix_auto >= 0.50:  return -10   # con ricarica: solo malus moderato
+        return 0
+
+
+def _alim_desc(ft: str, score: int, ricarica: bool) -> str:
+    label = _FT_LABEL.get(ft, ft)
+    if ft == "electric" and not ricarica:
+        return f"{label}: senza ricarica domestica l'utilizzo è penalizzato"
+    if ft == "phev" and not ricarica:
+        return f"{label}: senza ricarica funziona come termico (consumi reali superiori al dichiarato)"
+    if score >= 80:
+        return f"{label}: ottima scelta per il tuo mix di utilizzo"
+    if score >= 60:
+        return f"{label}: buona compatibilità con le tue abitudini"
+    if score >= 40:
+        return f"{label}: discreta compatibilità con il tuo utilizzo"
+    return f"{label}: poco adatta al tuo mix di percorsi"
 
 
 # ── Spiegazioni dinamiche ─────────────────────────────────────────────────────
@@ -285,12 +422,15 @@ def spiega_motorizzazione(ft: str, profilo: "ProfiloUtente") -> str:
                     "Ideale per chi ha percorsi quotidiani prevedibili.")
         return ("Elettrico senza ricarica a casa: richiede accesso frequente a colonnine pubbliche "
                 "nei pressi di casa o del lavoro.")
-    if ft == "petrol/electric":
+    if ft == "phev":
         if ricarica:
             return ("Ibrido plug-in: i tragitti brevi in modalità elettrica, i lunghi col termico. "
                     "Con ricarica domestica è la scelta più versatile per uso misto.")
         return ("Ibrido plug-in senza ricarica: funziona come un termico efficiente, "
                 "con il motore benzina sempre disponibile come backup.")
+    if ft == "full_hybrid":
+        return ("L'ibrido full-HEV si ricarica da solo frenando e in decelerazione. "
+                "Nessun bisogno di presa elettrica, consumi ridotti soprattutto in città e nel traffico.")
     if ft == "diesel":
         if mix_a >= 0.40 or km > 80:
             return (f"Diesel: la motorizzazione più efficiente per chi percorre molti km "
@@ -330,8 +470,12 @@ def spiega_scelta(auto: "Auto", profilo: "ProfiloUtente", rank: int,
     # Alimentazione
     alim_pts = punti.get("alimentazione", 0)
     _FT_IT = {
-        "electric": "elettrica", "petrol/electric": "ibrida PHEV",
-        "diesel": "diesel", "lpg": "GPL", "petrol": "benzina",
+        "electric":    "elettrica",
+        "phev":        "ibrida PHEV",
+        "full_hybrid": "ibrido full-HEV",
+        "diesel":      "diesel",
+        "lpg":         "GPL",
+        "petrol":      "benzina",
     }
     ft_it = _FT_IT.get(auto.alimentazione, auto.alimentazione)
     if alim_pts >= 70:
@@ -363,86 +507,6 @@ def spiega_scelta(auto: "Auto", profilo: "ProfiloUtente", rank: int,
     return f"{intro}: " + ", ".join(frasi) + "."
 
 
-# ── Costo carburante / energia ─────────────────────────────────────────────────
-
-PREZZI_CARBURANTE: dict[str, float] = {
-    "petrol":         1.78,
-    "diesel":         1.68,
-    "lpg":            0.85,
-    "ng":             1.10,
-    "petrol/electric": 1.78,   # quota termica per PHEV senza ricarica
-}
-
-
-def stima_costo_mensile(consumo: Optional[float], ft: str, km_giorno: int,
-                         ricarica: bool = False) -> float:
-    """Stima costo mensile carburante/energia in €.
-    Per elettrici e PHEV (con ricarica) usa tariffa €/kWh.
-    """
-    if not consumo or consumo <= 0:
-        return 0.0
-    ft = ft.lower()
-    if ft == "electric":
-        return round(km_giorno * 30 * (consumo / 100) * 0.25, 0)
-    if ft == "petrol/electric" and ricarica:
-        consumo_eff = consumo * 0.4   # uso parzialmente elettrico
-        return round(km_giorno * 30 * (consumo_eff / 100) * PREZZI_CARBURANTE["petrol"], 0)
-    prezzo = PREZZI_CARBURANTE.get(ft, 1.78)
-    return round(km_giorno * 30 * (consumo / 100) * prezzo, 0)
-
-
-# ── Fix 2: peso motorizzazione con mix percorso ────────────────────────────────
-
-PESI_PER_SCENARIO: dict[str, tuple[int, int, int]] = {
-    # chiave → (punteggio_città, punteggio_extraurbano, punteggio_autostrada) 0-100
-    "electric":        (100, 60, 20),
-    "petrol/electric": (90,  85, 65),
-    "full_hybrid":     (88,  72, 50),   # HEV: ottimo in città, buono misto, meno in autostrada
-    "petrol":          (70,  75, 65),
-    "diesel":          (30,  80, 100),
-    "lpg":             (65,  65, 50),
-    "ng":              (50,  55, 45),
-}
-
-_FT_LABEL: dict[str, str] = {
-    "electric":        "Elettrica",
-    "petrol/electric": "Ibrida PHEV",
-    "full_hybrid":     "Ibrido full HEV",
-    "petrol":          "Benzina",
-    "diesel":          "Diesel",
-    "lpg":             "GPL",
-    "ng":              "Metano",
-}
-
-
-def peso_motorizzazione(
-    ft: str,
-    mix_citta: float,
-    mix_extra: float,
-    mix_auto: float,
-    ricarica_a_casa: bool,
-) -> int:
-    ft = ft.lower()
-    if ft == "electric" and not ricarica_a_casa:
-        return 15   # penalità forte — elettrico senza ricarica è sempre problematico
-    pesi = PESI_PER_SCENARIO.get(ft, (50, 50, 50))
-    score = pesi[0] * mix_citta + pesi[1] * mix_extra + pesi[2] * mix_auto
-    return round(score)
-
-
-def _alim_desc(ft: str, score: int, ricarica: bool) -> str:
-    label = _FT_LABEL.get(ft, ft)
-    if ft == "electric" and not ricarica:
-        return f"{label}: senza ricarica domestica l'utilizzo è penalizzato"
-    if score >= 80:
-        return f"{label}: ottima scelta per il tuo mix di utilizzo"
-    if score >= 60:
-        return f"{label}: buona compatibilità con le tue abitudini"
-    if score >= 40:
-        return f"{label}: discreta compatibilità con il tuo utilizzo"
-    return f"{label}: poco adatta al tuo mix di percorsi"
-
-
 # ── Scoring principale ─────────────────────────────────────────────────────────
 
 def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
@@ -461,6 +525,7 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
     mentalita         = profilo.mentalita
     contesto_str      = profilo.contesto_stradale
     autonomia_ut      = profilo.autonomia_utente
+    pref_carr         = getattr(profilo, "pref_carrozzeria", "nessuna")
     mix_c             = profilo.mix_citta
     mix_e             = profilo.mix_extra
     mix_a             = profilo.mix_auto
@@ -470,8 +535,6 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
         return None
 
     # ── Vincolo neopatentato (Italia: max 55 kW/t per i primi 3 anni) ──────────
-    # peso_kg non disponibile nel DB 2026 → rapporto_peso_potenza sempre None,
-    # il vincolo non esclude nessuno; mantenuto per futura compatibilità.
     if neopatentato and auto.rapporto_peso_potenza is not None:
         if auto.rapporto_peso_potenza > 55:
             return None
@@ -492,27 +555,41 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
     # ── Vincolo budget per mentalità ────────────────────────────────────────────
     if auto.prezzo is not None:
         ratio = auto.prezzo / budget
-        if mentalita == "minimo" and ratio > 1.05:    return None  # max 5% flessibilità
-        if mentalita == "qualita" and ratio > 1.10:   return None  # max 10%
-        if mentalita == "premium" and ratio > 1.20:   return None  # max 20%
+        if mentalita == "minimo" and ratio > 1.05:    return None
+        if mentalita == "qualita" and ratio > 1.10:   return None
+        if mentalita == "premium" and ratio > 1.20:   return None
+
+    # ── Componenti con nome per debug panel ────────────────────────────────────
+    _bs = 3
+    _alim_score = 0
+    _ms = 0
+    _carr_s = 0
+    _malus_phev = 0
 
     # ── 1. Budget ──────────────────────────────────────────────────────────────
     if auto.prezzo is not None:
-        bs = budget_score(auto.prezzo, budget, mentalita)
-        voci.append(("budget", bs, _budget_desc(auto.prezzo, budget, bs, mentalita)))
+        _bs = budget_score(auto.prezzo, budget, mentalita)
+        voci.append(("budget", _bs, _budget_desc(auto.prezzo, budget, _bs, mentalita)))
     else:
-        voci.append(("budget", 3, "prezzo non disponibile (verifica concessionario)"))
+        voci.append(("budget", _bs, "prezzo non disponibile (verifica concessionario)"))
 
     # ── 2. Alimentazione vs mix percorso ───────────────────────────────────────
-    # is_full_hybrid sempre False nel DB 2026 (HEV Toyota → petrol/electric)
-    alim_score = peso_motorizzazione(auto.alimentazione, mix_c, mix_e, mix_a, ricarica)
-    voci.append(("alimentazione", alim_score,
-                 _alim_desc(auto.alimentazione, alim_score, ricarica)))
+    _alim_score = peso_motorizzazione(auto.alimentazione, mix_c, mix_e, mix_a, ricarica)
+    voci.append(("alimentazione", _alim_score,
+                 _alim_desc(auto.alimentazione, _alim_score, ricarica)))
+
+    # ── 2b. Malus PHEV percorsi autostradali ───────────────────────────────────
+    _malus_phev = calcola_malus_phev(auto.alimentazione, mix_a, ricarica)
+    if _malus_phev != 0:
+        if not ricarica:
+            desc_malus = "PHEV senza ricarica: penalizzazione su percorsi autostradali"
+        else:
+            desc_malus = "PHEV: uso del termico prevalente in autostrada"
+        voci.append(("phev_malus", _malus_phev, desc_malus))
 
     # ── 3. Efficienza consumo ──────────────────────────────────────────────────
     if auto.consumo and auto.consumo > 0:
         if auto.is_elettrica:
-            # consumo in kWh/100km
             costo_mensile = stima_costo_mensile(auto.consumo, auto.alimentazione, km, ricarica)
             voci.append(("efficienza", 12,
                 f"consumo {auto.consumo:.1f} kWh/100km — ~{costo_mensile:.0f}€/mese energia"))
@@ -525,11 +602,9 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
             elif auto.consumo < 5.5:
                 voci.append(("efficienza", 4,
                     f"consumo {auto.consumo} {unita} (~{costo_mensile:.0f}€/mese)"))
-            # consumo >= 5.5: nessun bonus (già gestito da alim_score)
 
-    # ── 4. Spazio / passeggeri (proxy: lunghezza_mm e bagagliaio) ────────────
+    # ── 4. Spazio / passeggeri ────────────────────────────────────────────────
     if passeggeri >= 4:
-        # Lunghezza: proxy dimensione abitacolo
         if auto.lunghezza_mm:
             if auto.lunghezza_mm < 3800:
                 voci.append(("spazio", -20, "auto molto compatta: spazio insufficiente per 4+ passeggeri"))
@@ -539,7 +614,6 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
                 voci.append(("spazio", 10, "auto spaziosa: ideale per 4-5 passeggeri"))
             else:
                 voci.append(("spazio", 3, "dimensioni adeguate per 4+ passeggeri"))
-        # Bagagliaio
         if auto.bagagliaio:
             if auto.bagagliaio < 200:
                 voci.append(("spazio", -15, f"bagagliaio {auto.bagagliaio:.0f}L: insufficiente per 4+ persone"))
@@ -573,13 +647,13 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
             f"{auto.n_versioni} versioni disponibili"))
 
     # ── 7. Marca vs mentalità acquisto ────────────────────────────────────────
-    ms = marca_score(auto.marca, mentalita)
-    if ms != 0:
-        if ms > 0:
-            voci.append(("marca", ms,
+    _ms = marca_score(auto.marca, mentalita)
+    if _ms != 0:
+        if _ms > 0:
+            voci.append(("marca", _ms,
                 f"{auto.marca}: marca adatta al tuo profilo d'acquisto"))
         else:
-            voci.append(("marca", ms,
+            voci.append(("marca", _ms,
                 f"{auto.marca}: marca premium, non ottimale per chi cerca il minimo"))
 
     # ── 8. Contesto stradale (dimensione / trazione) ──────────────────────────
@@ -603,8 +677,27 @@ def score_auto(auto: Auto, profilo: ProfiloUtente) -> Optional[DettaglioScore]:
             voci.append(("autonomia", aus,
                 "autonomia elettrica limitata per i tuoi viaggi lunghi"))
 
+    # ── 10. Preferenza carrozzeria ────────────────────────────────────────────
+    carr_auto = getattr(auto, "carrozzeria_prevalente", None)
+    _carr_s = carrozzeria_score(carr_auto, pref_carr)
+    if _carr_s != 0:
+        if _carr_s > 0:
+            voci.append(("carrozzeria", _carr_s,
+                f"carrozzeria {carr_auto}: in linea con la tua preferenza"))
+        else:
+            voci.append(("carrozzeria", _carr_s,
+                f"carrozzeria {carr_auto}: non è il tipo che preferisci"))
+
     totale = sum(p for _, p, _ in voci)
-    return DettaglioScore(totale=totale, voci=voci)
+    return DettaglioScore(
+        totale=totale,
+        voci=voci,
+        motorizzazione=float(_alim_score),
+        budget=float(_bs),
+        marca_s=float(_ms),
+        carrozzeria=float(_carr_s),
+        malus=float(_malus_phev),
+    )
 
 
 # ─── Engine di raccomandazione ─────────────────────────────────────────────────
@@ -655,6 +748,8 @@ def stampa_raccomandazioni(raccomandazioni: list[Raccomandazione], titolo: str =
         print(f"\n  #{r.rank}  {auto.nome}")
         print(f"  {_sep()}")
         print(f"  Score totale: {score.totale:.1f} punti")
+        print(f"  [motoriz={score.motorizzazione:.0f} budget={score.budget:.0f} "
+              f"marca={score.marca_s:.0f} carr={score.carrozzeria:.0f} malus={score.malus:.0f}]")
 
         if auto.prezzo:
             print(f"  Prezzo base:  {auto.prezzo:,.0f} €")
@@ -666,6 +761,8 @@ def stampa_raccomandazioni(raccomandazioni: list[Raccomandazione], titolo: str =
             print(f"  Consumo:      {auto.consumo} {unita}{stim}")
         if auto.bagagliaio:
             print(f"  Bagagliaio:   {auto.bagagliaio:.0f} L")
+        if auto.carrozzeria_prevalente:
+            print(f"  Carrozzeria:  {auto.carrozzeria_prevalente}")
 
         print(f"\n  Perché questa auto:")
         for cat, punti, desc in score.voci:
@@ -736,6 +833,36 @@ def test_profili():
                 autonomia_utente="media",
             ),
         ),
+        (
+            "PHEV test / autostrada / no ricarica — atteso: diesel >> PHEV",
+            ProfiloUtente(
+                mix_citta=0.15, mix_extra=0.25, mix_auto=0.60,
+                km_giorno=90, autonomia_viaggio=280,
+                ricarica_a_casa=False,
+                budget_acquisto_eur=40_000,
+                n_passeggeri_abituali=2,
+                neopatentato=False,
+                contesto="privato",
+                mentalita="qualita",
+                contesto_stradale="periferia",
+                autonomia_utente="media",
+            ),
+        ),
+        (
+            "PHEV test / autostrada / CON ricarica — atteso: PHEV competitivo",
+            ProfiloUtente(
+                mix_citta=0.15, mix_extra=0.25, mix_auto=0.60,
+                km_giorno=90, autonomia_viaggio=280,
+                ricarica_a_casa=True,
+                budget_acquisto_eur=40_000,
+                n_passeggeri_abituali=2,
+                neopatentato=False,
+                contesto="privato",
+                mentalita="qualita",
+                contesto_stradale="periferia",
+                autonomia_utente="media",
+            ),
+        ),
     ]
 
     for nome, profilo in profili:
@@ -771,7 +898,7 @@ def _chiedi_bool(domanda: str) -> bool:
 
 def cli():
     print("\n" + "═" * 60)
-    print("  Raccomandatore auto — Database 2026")
+    print("  Raccomandatore auto — Database 2026 v4")
     print("═" * 60)
     print("  Rispondi alle domande per trovare l'auto più adatta a te.\n")
 
@@ -785,9 +912,11 @@ def cli():
     neopatentato = _chiedi_bool("  Sei neopatentato (patente < 3 anni)?")
     contesto = _chiedi_scelta("  Acquisto per uso?", ["privato", "partita_iva"])
 
-    mentalita_cli     = _chiedi_scelta("  Mentalità acquisto?", ["minimo", "qualita", "premium"])
-    contesto_str_cli  = _chiedi_scelta("  Contesto stradale?", ["centro", "periferia", "montagna"])
-    autonomia_ut_cli  = _chiedi_scelta("  Autonomia viaggi?", ["corta", "media", "lunga"]) if ricarica else "media"
+    mentalita_cli    = _chiedi_scelta("  Mentalità acquisto?", ["minimo", "qualita", "premium"])
+    contesto_str_cli = _chiedi_scelta("  Contesto stradale?", ["centro", "periferia", "montagna"])
+    autonomia_ut_cli = _chiedi_scelta("  Autonomia viaggi?", ["corta", "media", "lunga"]) if ricarica else "media"
+    pref_carr_cli    = _chiedi_scelta("  Preferenza carrozzeria?",
+                                      ["nessuna", "suv", "berlina", "station_wagon", "monovolume"])
 
     profilo = ProfiloUtente(
         mix_citta=mix_c,
@@ -803,6 +932,7 @@ def cli():
         mentalita=mentalita_cli,
         contesto_stradale=contesto_str_cli,
         autonomia_utente=autonomia_ut_cli,
+        pref_carrozzeria=pref_carr_cli,
     )
 
     print("\n  Calcolo raccomandazioni...")
